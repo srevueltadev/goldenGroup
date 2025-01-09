@@ -1,42 +1,142 @@
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 html,
 body {
-  max-width: 100vw;
-  overflow-x: hidden;
+  overflow: hidden;
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
   font-family: Arial, Helvetica, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-* {
-  box-sizing: border-box;
-  padding: 0;
+main{
+  margin: 10%;
+  display: flex;
+  justify-content: center;
+  flex-direction: column;
+  background: white;
+  border-radius: 10px;
+  padding: 10px;
+}
+
+iframe body { overflow:hidden; }
+
+.content{
+  background: white;
+}
+
+.loadingBar {
+  width: 100%;
+  overflow: hidden;
+}
+
+.progress {
+  height: 100%;
+  border: 0 !important;
+  background: #4caf50;
+  transition: width 50ms linear;
+}
+
+
+body {
+  width: 100%;
+  height: 100%;
+  --s: 100px; /* control the size */
+  --c1: #1d1d1d;
+  --c2: #4e4f51;
+  --c3: #3c3c3c;
+
+  background: repeating-conic-gradient(
+          from 30deg,
+          #0000 0 120deg,
+          var(--c3) 0 180deg
+  )
+  calc(0.5 * var(--s)) calc(0.5 * var(--s) * 0.577),
+  repeating-conic-gradient(
+          from 30deg,
+          var(--c1) 0 60deg,
+          var(--c2) 0 120deg,
+          var(--c3) 0 180deg
+  );
+  background-size: var(--s) calc(var(--s) * 0.577);
+}
+
+.card {
+  background: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  margin: 20px auto;
+  max-width: 600px;
+  border: 1px solid #e0e0e0;
+}
+
+/* Encabezado */
+.card h2 {
+  font-size: 1.5em;
+  margin-bottom: 10px;
+  color: #1d3557;
+  font-weight: bold;
+}
+
+/* Tabla de datos */
+.card table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+}
+
+.card table th,
+.card table td {
+  text-align: left;
+  padding: 10px;
+  font-size: 0.9em;
+}
+
+.card table th {
+  background-color: #f8f9fa;
+  color: #555;
+}
+
+.card table tr:nth-child(even) {
+  background-color: #f4f4f4;
+}
+
+/* Campo de entrada */
+.card input[type="text"] {
+  width: 100%;
+  padding: 5px 10px;
   margin: 0;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 0.9em;
 }
 
-a {
-  color: inherit;
-  text-decoration: none;
+.card input[type="text"]::placeholder {
+  color: #aaa;
 }
 
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
-  }
+/* Botón (si aplica) */
+.card button {
+  padding: 10px 20px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  font-size: 0.9em;
+  cursor: pointer;
+}
+
+.card button:hover {
+  background-color: #0056b3;
+}
+
+/* Pie de página */
+.footer {
+  text-align: center;
+  font-size: 0.8em;
+  color: #666;
+  margin-top: 20px;
+  border-top: 1px solid #e0e0e0;
+  padding-top: 10px;
 }
