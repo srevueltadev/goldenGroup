@@ -217,7 +217,7 @@ export default function Home() {
                                                     setData({...nowData})
                                                     calculos(nowData)
                                                     if (typeof window !== "undefined") {
-                                                        localStorage.setItem('dolar',String(e.target.value))
+                                                        localStorage.setItem('dolar', String(e.target.value))
                                                     }
                                                 }}
                                             />
@@ -234,12 +234,10 @@ export default function Home() {
                                 </tbody>
                             </table>
                         </div>
-                        {isError && (
-                            <iframe id={'myiframe'}
-                                    style={{overflow: 'hidden', pointerEvents: 'none', width: '100%', border: 'none'}}
-                                    scrolling="no"
-                                    src="https://pbit.bancodebogota.com/Indicadores/Tirilla.aspx" height={50}></iframe>
-                        )}
+                        <iframe id={'myiframe'}
+                                style={{overflow: 'hidden', pointerEvents: 'none', width: '100%', border: 'none'}}
+                                scrolling="no"
+                                src="https://pbit.bancodebogota.com/Indicadores/Tirilla.aspx" height={50}></iframe>
                     </Col>
                     {/*<Col sm={12}>
                   <div className="container">
