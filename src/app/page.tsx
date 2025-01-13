@@ -63,9 +63,13 @@ export default function Home() {
         { Entidad: "", GoldPrice: 0, Factor: "90.5%"},//, goldStyle: {backgroundColor: "#88a1c8"}},
         { Entidad: "", GoldPrice: 0, Factor: "91.0%"},//, goldStyle: {backgroundColor: "#88a1c8"}},
         { Entidad: "", GoldPrice: 0, Factor: "91.5%", formatEn:true},//, goldStyle: {backgroundColor: "#88a1c8"}},
-        { Entidad: "", GoldPrice: 0, Factor: "92.0%"},//, goldStyle: {backgroundColor: "#88a1c8"}},
+        { Entidad: "", GoldPrice: 0, Factor: "92.0%",
+            factorStyle:{backgroundColor: "#88a1c8",fontWeight: 'bold'}, goldStyle: {backgroundColor: "#88a1c8",fontWeight: 'bold'}
+        },//, goldStyle: {backgroundColor: "#88a1c8"}},
         { Entidad: "", GoldPrice: 0, Factor: "92.5%"},//, goldStyle: {backgroundColor: "#88a1c8"}},
-        { Entidad: "", GoldPrice: 0, Factor: "93.0%"},//, goldStyle: {backgroundColor: "#88a1c8"}},
+        { Entidad: "", GoldPrice: 0, Factor: "93.0%",
+            factorStyle:{backgroundColor: "#88a1c8",fontWeight: 'bold'}, goldStyle: {backgroundColor: "#88a1c8",fontWeight: 'bold'}
+        },//, goldStyle: {backgroundColor: "#88a1c8"}},
         { Entidad: "", GoldPrice: 0, Factor: "98.8%"},//, goldStyle: {backgroundColor: "#88a1c8"}},
         { Entidad: "", GoldPrice: 0, Factor: "99.3%"},//, goldStyle: {backgroundColor: "#88a1c8"}},
         { Entidad: "", GoldPrice: 0, Factor: "",factorEditable:true},//, goldStyle: {backgroundColor: "#88a1c8"}},
@@ -130,9 +134,11 @@ export default function Home() {
 
     const calculos = () =>{
         dataForm[0].GoldPrice = data.kitco;
-        dataForm[0].Factor = data.kitco_prom;
+        dataForm[0].Factor = data.kitco-100;
 
         dataForm[1].GoldPrice = Number(bancodebogota);
+        dataForm[1].Factor = Number(bancodebogota)-100;
+
         dataForm[3].GoldPrice = Number(data.other)//Number(parseFloat(String(data.other_prom)).toFixed(2));
         dataForm[3].Factor = data.other_prom
 
