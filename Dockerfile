@@ -77,5 +77,5 @@ COPY --from=build /app /app
 EXPOSE 3000
 
 # Comando para iniciar la aplicación
-CMD [ "npm", "run", "start" ]
-CMD ["sh", "-c", "npx playwright install --with-deps && npm run start"]
+#CMD [ "npm", "run", "start" ]
+CMD ["sh", "-c", "npx playwright install && npm run start"]
