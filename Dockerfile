@@ -1,45 +1,81 @@
 # syntax = docker/dockerfile:1
 
-# Adjust NODE_VERSION as desired
+# Define la versión de Node.js
 ARG NODE_VERSION=20.12.0
 FROM node:${NODE_VERSION}-slim as base
 
 LABEL fly_launch_runtime="Next.js"
 
-# Next.js app lives here
+# Configuración inicial
 WORKDIR /app
-
-# Set production environment
 ENV NODE_ENV="production"
+ENV PLAYWRIGHT_BROWSERS_PATH="/ms-playwright"
+ENV PLAYWRIGHT_SKIP_BROWSER_GC=1
 
-
-# Throw-away build stage to reduce size of final image
+# Etapa de construcción
 FROM base as build
 
-# Install packages needed to build node modules
+# Instalar dependencias del sistema
 RUN apt-get update -qq && \
-    apt-get install --no-install-recommends -y build-essential node-gyp pkg-config python-is-python3
+    apt-get install --no-install-recommends -y \
+    build-essential \
+    node-gyp \
+    pkg-config \
+    python-is-python3 \
+    libnss3 \
+    libatk1.0-0 \
+    libatk-bridge2.0-0 \
+    libcups2 \
+    libdrm2 \
+    libxkbcommon0 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxrandr2 \
+    libgbm1 && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
-# Install node modules
-COPY package-lock.json package.json ./
+# Instalar dependencias del proyecto
+COPY package.json package-lock.json ./
 RUN npm ci --include=dev
 
-# Copy application code
+# Instalar navegadores de Playwright con dependencias
+RUN npx playwright install --with-deps
+
+# Copiar el código fuente
 COPY . .
 
-# Build application
+# Construir la aplicación
 RUN npm run build
 
-# Remove development dependencies
+# Reducir el tamaño de la imagen eliminando dependencias de desarrollo
 RUN npm prune --omit=dev
 
-
-# Final stage for app image
+# Etapa final
 FROM base
 
-# Copy built application
+# Instalar dependencias necesarias para los navegadores
+RUN apt-get update -qq && \
+    apt-get install --no-install-recommends -y \
+    libnss3 \
+    libatk1.0-0 \
+    libatk-bridge2.0-0 \
+    libcups2 \
+    libdrm2 \
+    libxkbcommon0 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxrandr2 \
+    libgbm1 && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Copiar la aplicación construida
 COPY --from=build /app /app
 
-# Start the server by default, this can be overwritten at runtime
+# Exponer el puerto de la aplicación
 EXPOSE 3000
+
+# Comando para iniciar la aplicación
 CMD [ "npm", "run", "start" ]
+CMD ["sh", "-c", "npx playwright install --with-deps && npm run start"]

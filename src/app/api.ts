@@ -5,9 +5,16 @@ const api = {
     bancodebogota: async () => {
         const result = {mid:0}
        try {
+           const response = await fetch('/api/getUsd');
+           const data = await response.json();
+           if(data.usd){
+               result.mid = Number(data.usd[0].split(':')[1].trim().replaceAll(',','.'))
+           }else{
+               result.mid = 0
+           }
            return result
+           // eslint-disable-next-line @typescript-eslint/no-unused-vars
        }catch (e) {
-            console.error(e)
             return result
        }
     },

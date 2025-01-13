@@ -6,6 +6,9 @@
 app = 'price-gold'
 primary_region = 'bog'
 
+[env]
+    NODE_ENV = "production"
+
 [build]
 
 [http_service]

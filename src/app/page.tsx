@@ -17,15 +17,25 @@ function formatToMoney(value: number | string, locale = 'en-US', currency = 'USD
     return formatter.format(Number(value));
 }
 
+export interface DataType{
+    kitco: number;
+    kitco_prom: number;
+    other: number;
+    other_prom: number;
+    dolar: number;
+}
 
 export default function Home() {
-    const [data, setData] = useState({
+    const [isError, setIsError] = useState(false)
+    const [data, setData] = useState<DataType>({
         kitco: 0,
         kitco_prom: 0,
         other: 0,
         other_prom: 0,
+        dolar: 0,
     })
-    let defaultValue = "4333.00"
+
+    const defaultValue = "4333.00"
 
     useEffect(() => {
         const metaViewport = document.createElement('meta');
@@ -38,13 +48,7 @@ export default function Home() {
         };
     }, []);
 
-    if (typeof window !== "undefined") {
-        defaultValue = localStorage.getItem('dolar') || defaultValue
-    }
-
-
     const [progress, setProgress] = useState(0);
-    const [bancodebogota, setBancodebogota] = useState(defaultValue)
     const [fix] = useState(31.10347)
 
     const [dataForm,setDataForm] = useState([
@@ -77,16 +81,32 @@ export default function Home() {
 
     const init = async () => {
         const nowData = {...data}
+
         let res = await api.kitco()
-        nowData.kitco = res.mid
-        if(bancodebogota.trim() !== ""){
-            nowData.kitco_prom = ((res.mid*Number(bancodebogota)*(fix)))
-        }
+        nowData.kitco = res.mid - 2
+
         res = await api.other()
         nowData.other = (res.mid)
-        if(bancodebogota.trim() !== ""){
-            nowData.other_prom = ((res.mid*Number(bancodebogota)*(fix)))
+
+        res = await api.bancodebogota()
+        if(res.mid === 0){
+            if (typeof window !== "undefined") {
+                nowData.dolar = Number(localStorage.getItem('dolar') || defaultValue)
+            }
+            setIsError(true)
+        }else{
+            nowData.dolar = res.mid
+            setIsError(false)
+            if (typeof window !== "undefined") {
+                localStorage.setItem('dolar',String(res.mid))
+            }
         }
+
+        //Sacar promedios con el fix
+        nowData.other_prom = ((nowData.other*(res.mid)*(fix)))
+        nowData.kitco_prom = ((nowData.kitco*(res.mid)*(fix)))
+
+        calculos(nowData)
         setData({...nowData})
     }
 
@@ -116,34 +136,18 @@ export default function Home() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    useEffect(() => {
-        const nowData = {...data}
-        nowData.kitco_prom = ((nowData.kitco*Number(bancodebogota || 0))*(fix))
-        nowData.other_prom = ((nowData.other*Number(bancodebogota || 0))*(fix))
-        setData({...nowData})
-        if (typeof window !== "undefined") {
-            localStorage.setItem('dolar',String(bancodebogota))
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [bancodebogota]);
+    const calculos = (nowData:DataType) =>{
+        dataForm[0].GoldPrice = nowData.kitco;
+        dataForm[0].Factor = nowData.kitco-100;
 
-    useEffect(()=>{
-        calculos()
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    },[data, bancodebogota])
+        dataForm[1].GoldPrice = nowData.dolar;
+        dataForm[1].Factor = nowData.dolar-100;
 
-    const calculos = () =>{
-        dataForm[0].GoldPrice = data.kitco;
-        dataForm[0].Factor = data.kitco-100;
-
-        dataForm[1].GoldPrice = Number(bancodebogota);
-        dataForm[1].Factor = Number(bancodebogota)-100;
-
-        dataForm[3].GoldPrice = Number(data.other)//Number(parseFloat(String(data.other_prom)).toFixed(2));
-        dataForm[3].Factor = data.other_prom
+        dataForm[3].GoldPrice = Number(nowData.other)//Number(parseFloat(String(data.other_prom)).toFixed(2));
+        dataForm[3].Factor = nowData.other_prom
 
         dataForm[4].Entidad = String(fix);//Fix
-        dataForm[6].Entidad = String(data.kitco*Number(bancodebogota)); //calcuo 2
+        dataForm[6].Entidad = String(nowData.kitco*nowData.dolar); //calcuo 2
 
         //precio real
         dataForm[2].GoldPrice = Number(dataForm[6].Entidad)/Number(dataForm[4].Entidad);// resultado
@@ -161,64 +165,83 @@ export default function Home() {
 
 
     return (
-      <main className={'card'}>
-          <Row>
-              <Col>
-                  <div className="container">
-                      <div className={'loadingBar'}>
-                          <div
-                              className={'progress'}
-                              style={{
-                                  width: `${progress}%`,
-                              }}
-                          ></div>
-                      </div>
-                  </div>
-                  <div className={'table-container'}>
+        <>
+            <main className={'card'}>
+                <Row>
+                    <Col>
+                        <div className="container">
+                            <div className={'loadingBar'}>
+                                <div
+                                    className={'progress'}
+                                    style={{
+                                        width: `${progress}%`,
+                                    }}
+                                ></div>
+                            </div>
+                        </div>
+                        <div className={'table-container'}>
 
-                      <table>
-                          <thead>
-                          <tr>
-                              <th>Entidad</th>
-                              <th>Gold Price</th>
-                              <th>Factor ({fix})</th>
-                          </tr>
-                          </thead>
-                          <tbody>
-                          <tr>
-                              <td>Kitco</td>
-                              <td>{formatToMoney(data.kitco)}</td>
-                              <td>{formatToMoney(data.kitco_prom)}</td>
-                          </tr>
-                          <tr>
-                              <td>Gold Price</td>
-                              <td>{formatToMoney(data.other)}</td>
-                              <td>{formatToMoney(data.other_prom)}</td>
-                          </tr>
-                          <tr>
-                              <td>Ingrese dolar ⬇</td>
-                              <td>
-                                  <input
-                                      type={"number"}
-                                      className={'form-control'}
-                                      name={'bancodebogota'}
-                                      value={bancodebogota}
-                                      onChange={(e) => {
-                                          setBancodebogota(e.target.value)
-                                      }}
-                                  />
-                              </td>
-                              <td>{formatToMoney(Number(bancodebogota))}</td>
-                          </tr>
-                          </tbody>
-                      </table>
-                  </div>
-                  <iframe id={'myiframe'}
-                          style={{overflow: 'hidden', pointerEvents: 'none', width: '100%', border: 'none'}}
-                          scrolling="no"
-                          src="https://pbit.bancodebogota.com/Indicadores/Tirilla.aspx" height={50}></iframe>
-              </Col>
-              {/*<Col sm={12}>
+                            <table>
+                                <thead>
+                                <tr>
+                                    <th>Entidad</th>
+                                    <th>Gold / Dolar</th>
+                                    <th>Factor ({fix})</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr>
+                                    <td>Kitco</td>
+                                    <td>{formatToMoney(data.kitco)}</td>
+                                    <td>{formatToMoney(data.kitco_prom)}</td>
+                                </tr>
+                                <tr>
+                                    <td>Gold Price</td>
+                                    <td>{formatToMoney(data.other)}</td>
+                                    <td>{formatToMoney(data.other_prom)}</td>
+                                </tr>
+                                {isError ? (
+                                    <tr>
+                                        <td>Ingrese dolar ⬇</td>
+                                        <td>
+                                            <input
+                                                type={"number"}
+                                                className={'form-control'}
+                                                name={'bancodebogota'}
+                                                placeholder={"4333"}
+                                                autoComplete={'off'}
+                                                value={data.dolar}
+                                                onChange={(e) => {
+                                                    const nowData = {...data}
+                                                    nowData.dolar = Number(e.target.value || 0)
+                                                    setData({...nowData})
+                                                    calculos(nowData)
+                                                    if (typeof window !== "undefined") {
+                                                        localStorage.setItem('dolar',String(e.target.value))
+                                                    }
+                                                }}
+                                            />
+                                        </td>
+                                        <td>{formatToMoney(data.dolar)}</td>
+                                    </tr>
+                                ) : (
+                                    <tr>
+                                        <td>Banco de bogota</td>
+                                        <td>{formatToMoney(data.dolar)}</td>
+                                        <td>Precio oro</td>
+                                    </tr>
+                                )}
+                                </tbody>
+                            </table>
+                        </div>
+                        {isError && (
+                            <iframe id={'myiframe'}
+                                    style={{overflow: 'hidden', pointerEvents: 'none', width: '100%', border: 'none'}}
+                                    scrolling="no"
+                                    src="https://pbit.bancodebogota.com/Indicadores/Tirilla.aspx" height={50}></iframe>
+                        )}
+                    </Col>
+                    {/*<Col sm={12}>
                   <div className="container">
                       <div className={'loadingBar'}>
                           <div
@@ -249,44 +272,45 @@ export default function Home() {
                       }}
                   />
               </Col>*/}
-              <Col>
-                  <div className={'table-container'}>
-                      <table>
-                          <thead>
-                          <tr>
-                              <th>#</th>
-                              <th>A</th>
-                              <th>B</th>
-                              <th>C</th>
-                          </tr>
-                          </thead>
-                          <tbody>
-                          {dataForm.map((row, index) => (
-                              <tr key={index}>
-                                  <td>{index}</td>
-                                  <td style={row.entidadStyle}>{row.formatEn?formatToMoney(row.Entidad):row.Entidad}</td>
-                                  <td style={row.goldStyle}>{formatToMoney(row.GoldPrice)}</td>
-                                  <td style={row.factorStyle}>
-                                      {row.factorEditable ? (
-                                          <input type="number"
-                                                 value={row.Factor}
-                                                 className={'form-control'}
-                                                 placeholder={"0.0%"}
-                                                 onChange={(e) => {
-                                                     dataForm[index].Factor = e.target.value
-                                                     setDataForm([...dataForm])
-                                                     calculos()
-                                                 }}
-                                          />
-                                      ) : formatToMoney(row.Factor)}</td>
-                              </tr>
-                          ))}
-                          </tbody>
-                      </table>
-                  </div>
-              </Col>
-          </Row>
-
-      </main>
+                    <Col>
+                        <div className={'table-container'}>
+                            <table>
+                                <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>A</th>
+                                    <th>B</th>
+                                    <th>C</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                {dataForm.map((row, index) => (
+                                    <tr key={index}>
+                                        <td>{index}</td>
+                                        <td style={row.entidadStyle}>{row.formatEn ? formatToMoney(row.Entidad) : row.Entidad}</td>
+                                        <td style={row.goldStyle}>{formatToMoney(row.GoldPrice)}</td>
+                                        <td style={row.factorStyle}>
+                                            {row.factorEditable ? (
+                                                <input type="number"
+                                                       value={row.Factor}
+                                                       className={'form-control'}
+                                                       autoComplete={'off'}
+                                                       placeholder={"0.0%"}
+                                                       onChange={(e) => {
+                                                           dataForm[index].Factor = e.target.value
+                                                           setDataForm([...dataForm])
+                                                           calculos(data)
+                                                       }}
+                                                />
+                                            ) : formatToMoney(row.Factor)}</td>
+                                    </tr>
+                                ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </Col>
+                </Row>
+            </main>
+        </>
     );
 }
