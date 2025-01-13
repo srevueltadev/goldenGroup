@@ -46,9 +46,9 @@ const api = {
     other: async ()=>{
         const res = {mid:0};
      try {
-         const response = await axios.get(`https://data-asg.goldprice.org/dbXRates/USD`);
+         const response = await axios.get(`https://data-asg.goldprice.org/dbXRates/COP`);
          const result = response.data;
-         res.mid = result.items[0]['xauPrice'].toFixed(2)
+         res.mid = Number((result.items[0]['xauPrice']* 32.1507466).toFixed(2))
          return res
      }catch(e) {
          console.error(e)

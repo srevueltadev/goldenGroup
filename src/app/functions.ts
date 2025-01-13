@@ -11,3 +11,4 @@ export function preventValueMoney(event: React.KeyboardEvent<HTMLInputElement>) 
         event.preventDefault();
     }
 }
+
