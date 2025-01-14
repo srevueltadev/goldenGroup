@@ -9,9 +9,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const browser = await chromium.launch({ headless: true });
         const page = await browser.newPage();
         await page.goto('https://pbit.bancodebogota.com/Indicadores/Tirilla.aspx');
-        const usd = await page.$$eval('#ctl00_MarPrinc > span:nth-child(3)', (elements) => {
+        let usd = await page.$$eval('#ctl00_MarPrinc > span:nth-child(3)', (elements) => {
             return elements.map((e) => e.textContent?.trim() || '');
         });
+        if(usd.length === 0){
+             usd = await page.$$eval('#ctl00_MarPrinc > span:nth-child(2)', (elements) => {
+                return elements.map((e) => e.textContent?.trim() || '');
+            });
+        }
         await browser.close();
         return res.status(200).json({ usd });
     } catch (error) {
