@@ -228,7 +228,7 @@ export default function Home() {
                                     <tr>
                                         <td>Banco de bogota</td>
                                         <td>{formatToMoney(data.dolar)}</td>
-                                        <td>{'=> Dolar'}</td>
+                                        <td>{'Dolar compra'}</td>
                                     </tr>
                                 )}
                                 </tbody>
