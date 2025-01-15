@@ -152,7 +152,25 @@ body {
   align-items: center;
 }
 
+.isMovile{
+  display: flex;
+  align-items: center;
+  width: 100%;
+  justify-content: end;
+}
+
 @media (max-width: 468px) {
+
+  .isMovile{
+    justify-content: center;
+  }
+
+  main{
+    margin: 0 !important;
+    border-radius: 0 !important;
+    padding: 5px !important;
+  }
+
   .table-container {
     display: flex;
     flex-direction: row;

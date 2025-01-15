@@ -33,6 +33,7 @@ export interface DataType{
 
 export default function Home() {
     const [isError, setIsError] = useState(false)
+    const [isMobile, setIsMobile] = useState(window.innerWidth <= 468);
     const dateNow = new Date().toLocaleTimeString()
     const [timeScrenshot, setTimeScrenshot] = useState('')
     const [data, setData] = useState<DataType>({
@@ -181,6 +182,14 @@ export default function Home() {
         setDataForm([...dataForm])
     }
 
+    useEffect(() => {
+        const handleResize = () => {
+            setIsMobile(window.innerWidth <= 468);
+        };
+        window.addEventListener("resize", handleResize);
+        return () => window.removeEventListener("resize", handleResize);
+    }, []);
+
     const captureRef = useRef<HTMLDivElement>(null);
 
     const handleCapture = async () => {
@@ -189,26 +198,47 @@ export default function Home() {
                 const canvas = await html2canvas(captureRef.current);
                 canvas.toBlob(async (blob) => {
                     if (blob) {
-                        try {
-                            const item = new ClipboardItem({ "image/png": blob });
-                            await navigator.clipboard.write([item]);
-                            setTimeScrenshot('')
-                            toast.success("Imagen copiada al portapapeles");
-                            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                        } catch (error) {
-                            setTimeScrenshot('')
-                            toast.error("Error al copiar la imagen al portapapeles");
+                        if(isMobile){
+                            if (navigator.share) {
+                                const file = new File([blob], "screenshot.png", { type: "image/png" });
+                                try {
+                                    toast.success("Imagen lista para ser compartida");
+                                    await navigator.share({
+                                        files: [file],
+                                        title: "Precio",
+                                        text: "",
+                                    });
+                                    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                                } catch (error) {
+                                    toast.error("Error al compartir: ");
+                                }
+                            } else {
+                                toast.warning("La API de compartir no está soportada en este dispositivo.");
+                                const dataUrl = canvas.toDataURL("image/png");
+                                const link = document.createElement("a");
+                                link.href = dataUrl;
+                                link.download = "screenshot.png";
+                                link.click();
+                            }
+                        }else{
+                            try {
+                                const item = new ClipboardItem({ "image/png": blob });
+                                await navigator.clipboard.write([item]);
+                                toast.success("Imagen copiada al portapapeles");
+                                // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                            } catch (error) {
+                                toast.error("Error al copiar la imagen al portapapeles");
+                            }
                         }
                     }
                 }, "image/png");
                 // eslint-disable-next-line @typescript-eslint/no-unused-vars
             } catch (error) {
-                setTimeScrenshot('')
                 toast.error("Error al capturar la pantalla");
             }
-        }else{
-            setTimeScrenshot('')
         }
+        setTimeScrenshot('')
+
     };
 
 
@@ -283,55 +313,59 @@ export default function Home() {
                                 src="https://pbit.bancodebogota.com/Indicadores/Tirilla.aspx" height={50}></iframe>
                     </Col>
                     <Col>
-                        <div className={'table-container'} ref={captureRef}>
+                        <div ref={captureRef} style={{display: 'flex',flexDirection: 'column'}}>
                             {timeScrenshot !== "" && (
-                                <span>
+                                <span style={{width:'100%',textAlign:'center'}}>
                                     {timeScrenshot}
                                 </span>)
                             }
-                            <table>
-                                <thead>
-                                <tr>
-                                    <th>#</th>
-                                    <th>A</th>
-                                    <th>B</th>
-                                    <th>C</th>
-                                </tr>
-                                </thead>
-                                <tbody>
-                                {dataForm.map((row, index) => (
-                                    <tr key={index}>
-                                        <td>{index}</td>
-                                        <td style={row.entidadStyle}>{row.formatEn ? formatToMoney(row.Entidad) : row.Entidad}</td>
-                                        <td style={row.goldStyle}>{formatToMoney(row.GoldPrice)}</td>
-                                        <td style={row.factorStyle}>
-                                            {row.factorEditable ? (
-                                                <input type="number"
-                                                       value={row.Factor}
-                                                       className={'form-control'}
-                                                       autoComplete={'off'}
-                                                       placeholder={"0.0%"}
-                                                       onChange={(e) => {
-                                                           dataForm[index].Factor = e.target.value
-                                                           setDataForm([...dataForm])
-                                                           calculos(data)
-                                                       }}
-                                                />
-                                            ) : formatToMoney(row.Factor)}</td>
+                            <div className={'table-container'} >
+                                <table>
+                                    <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>A</th>
+                                        <th>B</th>
+                                        <th>C</th>
                                     </tr>
-                                ))}
-                                </tbody>
-                            </table>
+                                    </thead>
+                                    <tbody>
+                                    {dataForm.map((row, index) => (
+                                        <tr key={index}>
+                                            <td>{index}</td>
+                                            <td style={row.entidadStyle}>{row.formatEn ? formatToMoney(row.Entidad) : row.Entidad}</td>
+                                            <td style={row.goldStyle}>{formatToMoney(row.GoldPrice)}</td>
+                                            <td style={row.factorStyle}>
+                                                {row.factorEditable ? (
+                                                    <input type="number"
+                                                           value={row.Factor}
+                                                           className={'form-control'}
+                                                           autoComplete={'off'}
+                                                           placeholder={"0.0%"}
+                                                           onChange={(e) => {
+                                                               dataForm[index].Factor = e.target.value
+                                                               setDataForm([...dataForm])
+                                                               calculos(data)
+                                                           }}
+                                                    />
+                                                ) : formatToMoney(row.Factor)}</td>
+                                        </tr>
+                                    ))}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
-                        <div>
+                        <div className={'isMovile'} >
                             <button onClick={
-                                ()=>{
+                                () => {
                                     setTimeScrenshot(`${new Date().toLocaleDateString()} - ${new Date().toLocaleTimeString()} `)
-                                    setTimeout(()=>{
+                                    setTimeout(() => {
                                         handleCapture().then()
-                                    },500)
+                                    }, 500)
                                 }
-                            }>Copiar pantallazo al portapapeles</button>
+                            }>
+                                {isMobile?"Compartir tabla":"Copiar pantallazo al portapapeles"}
+                            </button>
                         </div>
                     </Col>
                 </Row>
