@@ -33,7 +33,11 @@ export interface DataType{
 
 export default function Home() {
     const [isError, setIsError] = useState(false)
-    const [isMobile, setIsMobile] = useState(window.innerWidth <= 468);
+    let defaultwindow = false
+    if (typeof window !== "undefined") {
+        defaultwindow = window.innerWidth <= 468
+    }
+    const [isMobile, setIsMobile] = useState(defaultwindow);
     const dateNow = new Date().toLocaleTimeString()
     const [timeScrenshot, setTimeScrenshot] = useState('')
     const [data, setData] = useState<DataType>({
