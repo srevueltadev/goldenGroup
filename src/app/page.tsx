@@ -19,20 +19,27 @@ function formatToMoney(value: number | string, locale = 'en-US', currency = 'USD
 
 export interface DataType{
     kitco: number;
+    kitco_time?: string;
     kitco_prom: number;
     other: number;
+    other_time?: string;
     other_prom: number;
     dolar: number;
+    dolar_time?: string;
 }
 
 export default function Home() {
     const [isError, setIsError] = useState(false)
+    const dateNow = new Date().toLocaleTimeString()
     const [data, setData] = useState<DataType>({
         kitco: 0,
         kitco_prom: 0,
+        kitco_time: dateNow,
         other: 0,
         other_prom: 0,
+        other_time: dateNow,
         dolar: 0,
+        dolar_time: dateNow
     })
 
     const defaultValue = "4333.00"
@@ -48,9 +55,8 @@ export default function Home() {
         };
     }, []);
 
-    const [progress, setProgress] = useState(0);
+    //const [progress, setProgress] = useState(0);
     const [fix] = useState(31.10347)
-
     const [dataForm,setDataForm] = useState([
         { Entidad: "ONZA", GoldPrice: 0, Factor: 0,goldStyle: {fontWeight: 'bold'},entidadStyle:{fontWeight: 'bold'} },
         {
@@ -79,23 +85,36 @@ export default function Home() {
         { Entidad: "", GoldPrice: 0, Factor: "",factorEditable:true},//, goldStyle: {backgroundColor: "#88a1c8"}},
     ]);
 
-    const init = async () => {
+/*    const initKitco = async () => {
         const nowData = {...data}
+        const res = await api.kitco()
+        nowData.kitco = res.mid - 2
+        nowData.kitco_prom = ((nowData.kitco*(nowData.dolar)*(fix)))
+        calculos(nowData)
+        setData({...nowData})
+    }*/
+
+    const init = async () => {
+        const nowData = data
 
         let res = await api.kitco()
-        nowData.kitco = res.mid - 2
+        nowData.kitco = res.mid
+        nowData.kitco_time = new Date().toLocaleTimeString()
 
         res = await api.other()
         nowData.other = (res.mid)
+        nowData.other_time = new Date().toLocaleTimeString()
 
         res = await api.bancodebogota()
         if(res.mid === 0){
             if (typeof window !== "undefined") {
+                nowData.dolar_time = new Date().toLocaleTimeString()
                 nowData.dolar = Number(localStorage.getItem('dolar') || defaultValue)
             }
             setIsError(true)
         }else{
             nowData.dolar = res.mid
+            nowData.dolar_time = new Date().toLocaleTimeString()
             setIsError(false)
             if (typeof window !== "undefined") {
                 localStorage.setItem('dolar',String(res.mid))
@@ -107,7 +126,6 @@ export default function Home() {
         nowData.kitco_prom = ((nowData.kitco*(res.mid)*(fix)))
 
         calculos(nowData)
-        setData({...nowData})
     }
 
     useEffect(() => {
@@ -118,20 +136,15 @@ export default function Home() {
     useEffect(() => {
         const time = setInterval(() => {
             init().then()
-        }, 10000);
+        }, 15000);
 
-        const interval = setInterval(() => {
-            setProgress((prev) => {
-                if (prev >= 100) {
-                    return 0;
-                }
-                return prev + 100 / 100;
-            });
-        }, 100);
+       /* const interval = setInterval(() => {
+            setProgress(prev => (prev >= 100 ? 0 : prev + 100 / 100));
+        }, 100);*/
 
         return () => {
             clearInterval(time)
-            clearInterval(interval)
+            //clearInterval(interval)
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
@@ -160,6 +173,7 @@ export default function Home() {
         for (let i = 4; i <= 12; i++) {
             dataForm[i].GoldPrice = gold*(Number(String(dataForm[i].Factor).replace('%','')) / 100)
         }
+        setData({...nowData})
         setDataForm([...dataForm])
     }
 
@@ -169,35 +183,39 @@ export default function Home() {
             <main className={'card'}>
                 <Row>
                     <Col>
-                        <div className="container">
+            {/*            <div className="container">
                             <div className={'loadingBar'}>
                                 <div
-                                    className={'progress'}
+                                    className={'progress progress-bar'}
                                     style={{
                                         width: `${progress}%`,
+                                        height: '15px'
                                     }}
-                                ></div>
+                                >
+                                </div>
                             </div>
-                        </div>
-                        <div className={'table-container'}>
-
+                        </div>*/}
+                        <div className={'table-container'} key={data.kitco}>
                             <table>
                                 <thead>
                                 <tr>
                                     <th>Entidad</th>
                                     <th>Gold / Dolar</th>
-                                    <th>Factor ({fix})</th>
+                                    <th>Hora</th>
+                                    <th></th>
                                 </tr>
                                 </thead>
                                 <tbody>
                                 <tr>
-                                    <td>Kitco</td>
+                                    <td className={'justify-content-between'}>Kitco</td>
                                     <td>{formatToMoney(data.kitco)}</td>
+                                    <td>{data.kitco_time?.split(" ")[0]}</td>
                                     <td>{formatToMoney(data.kitco_prom)}</td>
                                 </tr>
                                 <tr>
                                     <td>Gold Price</td>
                                     <td>{formatToMoney(data.other)}</td>
+                                    <td>{data.other_time?.split(" ")[0]}</td>
                                     <td>{formatToMoney(data.other_prom)}</td>
                                 </tr>
                                 {isError ? (
@@ -217,17 +235,19 @@ export default function Home() {
                                                     setData({...nowData})
                                                     calculos(nowData)
                                                     if (typeof window !== "undefined") {
-                                                        localStorage.setItem('dolar', String(e.target.value))
+                                                        localStorage.setItem('dolar', String(e.target.value || defaultValue))
                                                     }
                                                 }}
                                             />
                                         </td>
+                                        <td>{data.dolar_time?.split(" ")[0]}</td>
                                         <td>{formatToMoney(data.dolar)}</td>
                                     </tr>
                                 ) : (
                                     <tr>
-                                        <td>Banco de bogota</td>
+                                    <td>Banco de bogota</td>
                                         <td>{formatToMoney(data.dolar)}</td>
+                                        <td>{data.dolar_time?.split(" ")[0]}</td>
                                         <td>{'Dolar compra'}</td>
                                     </tr>
                                 )}
@@ -239,37 +259,6 @@ export default function Home() {
                                 scrolling="no"
                                 src="https://pbit.bancodebogota.com/Indicadores/Tirilla.aspx" height={50}></iframe>
                     </Col>
-                    {/*<Col sm={12}>
-                  <div className="container">
-                      <div className={'loadingBar'}>
-                          <div
-                              className={'progress'}
-                              style={{
-                                  width: `${progress}%`,
-                              }}
-                          ></div>
-                      </div>
-                  </div>
-              </Col>
-              <Col>
-                  <iframe id={'myiframe'}
-                          style={{overflow: 'hidden', pointerEvents: 'none', width: '100%', border: 'none'}}
-                          scrolling="no"
-                          src="https://pbit.bancodebogota.com/Indicadores/Tirilla.aspx" height={50}></iframe>
-              </Col>
-              <Col>
-                  <label htmlFor="bccn">Ingrese valor dolar :</label>
-                  <input
-                      type={"text"}
-                      id="bccn"
-                      className={'form-control'}
-                      name={'bancodebogota'}
-                      value={bancodebogota}
-                      onChange={(e) => {
-                          setBancodebogota(e.target.value)
-                      }}
-                  />
-              </Col>*/}
                     <Col>
                         <div className={'table-container'}>
                             <table>
