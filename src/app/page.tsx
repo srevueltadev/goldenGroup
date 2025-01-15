@@ -213,9 +213,7 @@ export default function Home() {
                                         text: "",
                                     });
                                     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                                } catch (error) {
-                                    toast.error("Error al compartir: ");
-                                }
+                                } catch (error) {}
                             } else {
                                 toast.warning("La API de compartir no está soportada en este dispositivo.");
                                 const dataUrl = canvas.toDataURL("image/png");
