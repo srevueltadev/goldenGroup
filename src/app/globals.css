@@ -152,7 +152,7 @@ body {
   align-items: center;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 468px) {
   .table-container {
     display: flex;
     flex-direction: row;
