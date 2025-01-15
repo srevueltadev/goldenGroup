@@ -1,7 +1,10 @@
 'use client'
-import React, {useEffect, useState} from "react";
+import React, {useEffect, useRef, useState} from "react";
 import api from "@/app/api";
 import {Col, Row} from "react-bootstrap";
+
+import html2canvas from "html2canvas";
+import {toast, ToastContainer} from "react-toastify";
 
 function formatToMoney(value: number | string, locale = 'en-US', currency = 'USD') {
     const formatter = new Intl.NumberFormat(locale, {
@@ -31,6 +34,7 @@ export interface DataType{
 export default function Home() {
     const [isError, setIsError] = useState(false)
     const dateNow = new Date().toLocaleTimeString()
+    const [timeScrenshot, setTimeScrenshot] = useState('')
     const [data, setData] = useState<DataType>({
         kitco: 0,
         kitco_prom: 0,
@@ -98,7 +102,7 @@ export default function Home() {
         const nowData = data
 
         let res = await api.kitco()
-        nowData.kitco = res.mid
+        nowData.kitco = res.mid-2
         nowData.kitco_time = new Date().toLocaleTimeString()
 
         res = await api.other()
@@ -177,24 +181,43 @@ export default function Home() {
         setDataForm([...dataForm])
     }
 
+    const captureRef = useRef<HTMLDivElement>(null);
+
+    const handleCapture = async () => {
+        if (captureRef.current) {
+            try {
+                const canvas = await html2canvas(captureRef.current);
+                canvas.toBlob(async (blob) => {
+                    if (blob) {
+                        try {
+                            const item = new ClipboardItem({ "image/png": blob });
+                            await navigator.clipboard.write([item]);
+                            setTimeScrenshot('')
+                            toast.success("Imagen copiada al portapapeles");
+                            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                        } catch (error) {
+                            setTimeScrenshot('')
+                            toast.error("Error al copiar la imagen al portapapeles");
+                        }
+                    }
+                }, "image/png");
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            } catch (error) {
+                setTimeScrenshot('')
+                toast.error("Error al capturar la pantalla");
+            }
+        }else{
+            setTimeScrenshot('')
+        }
+    };
+
 
     return (
         <>
+            <ToastContainer />
             <main className={'card'}>
                 <Row>
                     <Col>
-            {/*            <div className="container">
-                            <div className={'loadingBar'}>
-                                <div
-                                    className={'progress progress-bar'}
-                                    style={{
-                                        width: `${progress}%`,
-                                        height: '15px'
-                                    }}
-                                >
-                                </div>
-                            </div>
-                        </div>*/}
                         <div className={'table-container'} key={data.kitco}>
                             <table>
                                 <thead>
@@ -260,7 +283,12 @@ export default function Home() {
                                 src="https://pbit.bancodebogota.com/Indicadores/Tirilla.aspx" height={50}></iframe>
                     </Col>
                     <Col>
-                        <div className={'table-container'}>
+                        <div className={'table-container'} ref={captureRef}>
+                            {timeScrenshot !== "" && (
+                                <span>
+                                    {timeScrenshot}
+                                </span>)
+                            }
                             <table>
                                 <thead>
                                 <tr>
@@ -294,6 +322,16 @@ export default function Home() {
                                 ))}
                                 </tbody>
                             </table>
+                        </div>
+                        <div>
+                            <button onClick={
+                                ()=>{
+                                    setTimeScrenshot(`${new Date().toLocaleDateString()} - ${new Date().toLocaleTimeString()} `)
+                                    setTimeout(()=>{
+                                        handleCapture().then()
+                                    },500)
+                                }
+                            }>Copiar pantallazo al portapapeles</button>
                         </div>
                     </Col>
                 </Row>
