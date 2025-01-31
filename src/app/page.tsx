@@ -20,6 +20,17 @@ function formatToMoney(value: number | string, locale = 'en-US', currency = 'USD
     return formatter.format(Number(value));
 }
 
+export interface FormType{
+    A: string;
+    B: number;
+    C: string | number;
+    formatEn?: boolean;
+    goldStyle?: object;
+    factorStyle?: object;
+    entidadStyle?: object;
+    factorEditable?: boolean;
+}
+
 export interface DataType{
     kitco: number;
     kitco_time?: string;
@@ -30,6 +41,8 @@ export interface DataType{
     dolar: number;
     dolar_time?: string;
 }
+
+const bgBlue ={factorStyle:{backgroundColor: "#88a1c8",fontWeight: 'bold'}, goldStyle: {backgroundColor: "#88a1c8",fontWeight: 'bold'}}
 
 export default function Home() {
     const [isError, setIsError] = useState(false)
@@ -66,32 +79,28 @@ export default function Home() {
 
     //const [progress, setProgress] = useState(0);
     const [fix] = useState(31.10347)
-    const [dataForm,setDataForm] = useState([
-        { Entidad: "ONZA", GoldPrice: 0, Factor: 0,goldStyle: {fontWeight: 'bold'},entidadStyle:{fontWeight: 'bold'} },
+    const [dataForm,setDataForm] = useState<FormType[]>([
+        { A: "ONZA", B: 0, C: 0,goldStyle: {fontWeight: 'bold'},entidadStyle:{fontWeight: 'bold'} },
         {
-            Entidad: "USD", GoldPrice: 0, Factor: 0, entidadStyle: {color: "red",fontWeight: 'bold'},goldStyle: {color: "red",fontWeight: 'bold'}},
-        {Entidad: "Precio real", GoldPrice: 0, Factor: 0,entidadStyle:{fontWeight: 'bold'}, goldStyle: {color: "red",fontWeight: 'bold'}},
+            A: "USD", B: 0, C: 0, entidadStyle: {color: "red",fontWeight: 'bold'},goldStyle: {color: "red",fontWeight: 'bold'}},
+        {A: "Precio real", B: 0, C: 0,entidadStyle:{fontWeight: 'bold'}, goldStyle: {color: "red",fontWeight: 'bold'}},
         {
-            Entidad: "GOLD",
-            GoldPrice: 0,
-            Factor: 0,
+            A: "GOLD",
+            B: 0,
+            C: 0,
             entidadStyle:{fontWeight: 'bold'},
             goldStyle: {backgroundColor: "yellow",color:'red',fontWeight: 'bold'},
             factorStyle: {color: "red"}
         },
-        { Entidad: "", GoldPrice: 0, Factor: "90.5%"},//, goldStyle: {backgroundColor: "#88a1c8"}},
-        { Entidad: "", GoldPrice: 0, Factor: "91.0%"},//, goldStyle: {backgroundColor: "#88a1c8"}},
-        { Entidad: "", GoldPrice: 0, Factor: "91.5%", formatEn:true},//, goldStyle: {backgroundColor: "#88a1c8"}},
-        { Entidad: "", GoldPrice: 0, Factor: "92.0%",
-            factorStyle:{backgroundColor: "#88a1c8",fontWeight: 'bold'}, goldStyle: {backgroundColor: "#88a1c8",fontWeight: 'bold'}
-        },//, goldStyle: {backgroundColor: "#88a1c8"}},
-        { Entidad: "", GoldPrice: 0, Factor: "92.5%"},//, goldStyle: {backgroundColor: "#88a1c8"}},
-        { Entidad: "", GoldPrice: 0, Factor: "93.0%",
-            factorStyle:{backgroundColor: "#88a1c8",fontWeight: 'bold'}, goldStyle: {backgroundColor: "#88a1c8",fontWeight: 'bold'}
-        },//, goldStyle: {backgroundColor: "#88a1c8"}},
-        { Entidad: "", GoldPrice: 0, Factor: "98.8%"},//, goldStyle: {backgroundColor: "#88a1c8"}},
-        { Entidad: "", GoldPrice: 0, Factor: "99.3%"},//, goldStyle: {backgroundColor: "#88a1c8"}},
-        { Entidad: "", GoldPrice: 0, Factor: "",factorEditable:true},//, goldStyle: {backgroundColor: "#88a1c8"}},
+        { A: "", B: 0, C: "95.5%"},//, goldStyle: {backgroundColor: "#88a1c8"}},
+        { A: "", B: 0, C: "91.3%"},//, goldStyle: {backgroundColor: "#88a1c8"}},
+        { A: "", B: 0, C: "92.3%", formatEn:true,...bgBlue},
+        { A: "", B: 0, C: "92.6%"},//, goldStyle: {backgroundColor: "#88a1c8"}},
+        { A: "", B: 0, C: "93.0%",...bgBlue},//, goldStyle: {backgroundColor: "#88a1c8"}},
+        { A: "", B: 0, C: "94.0%"},//, goldStyle: {backgroundColor: "#88a1c8"}},
+        { A: "", B: 0, C: "98.8%"},//, goldStyle: {backgroundColor: "#88a1c8"}},
+        { A: "", B: 0, C: "99.3%"},//, goldStyle: {backgroundColor: "#88a1c8"}},
+        { A: "", B: 0, C: "",factorEditable:true},//, goldStyle: {backgroundColor: "#88a1c8"}},
     ]);
 
 /*    const initKitco = async () => {
@@ -159,28 +168,30 @@ export default function Home() {
     }, []);
 
     const calculos = (nowData:DataType) =>{
-        dataForm[0].GoldPrice = nowData.kitco;
-        dataForm[0].Factor = nowData.kitco-100;
+        dataForm[0].B = nowData.kitco;
+        dataForm[0].C = nowData.kitco*(95.5/100);
 
-        dataForm[1].GoldPrice = nowData.dolar;
-        dataForm[1].Factor = nowData.dolar-100;
+        dataForm[1].B = nowData.dolar;
+        dataForm[1].C = nowData.dolar-85;
 
-        dataForm[3].GoldPrice = Number(nowData.other)//Number(parseFloat(String(data.other_prom)).toFixed(2));
-        dataForm[3].Factor = nowData.other_prom
+        dataForm[3].B = Number(nowData.other)//Number(parseFloat(String(data.other_prom)).toFixed(2));
+        dataForm[3].C = nowData.other_prom
 
-        dataForm[4].Entidad = String(fix);//Fix
-        dataForm[6].Entidad = String(nowData.kitco*nowData.dolar); //calcuo 2
+        dataForm[4].A = String(fix);//Fix
+        dataForm[6].A = String(nowData.kitco*nowData.dolar); //calcuo 2
 
         //precio real
-        dataForm[2].GoldPrice = Number(dataForm[6].Entidad)/Number(dataForm[4].Entidad);// resultado
+        dataForm[2].B = Number(dataForm[6].A)/Number(dataForm[4].A) * 1000// resultado
+        // C0 * C1 / A4
+        dataForm[2].C = (Number(dataForm[0].C)*Number(dataForm[1].C))/Number(fix) // resultado
 
         //resta
-        dataForm[3].Factor = dataForm[2].GoldPrice-dataForm[3].GoldPrice;// resultado
+        dataForm[3].C = dataForm[2].B-dataForm[3].B;// resultado
 
         //porcentajes
-        const gold =  dataForm[2].GoldPrice
-        for (let i = 4; i <= 12; i++) {
-            dataForm[i].GoldPrice = gold*(Number(String(dataForm[i].Factor).replace('%','')) / 100)
+        const gold =  dataForm[2].B
+        for (let i = 4; i <= dataForm.length-1; i++) {
+            dataForm[i].B = gold*(Number(String(dataForm[i].C).replace('%','')) / 100)
         }
         setData({...nowData})
         setDataForm([...dataForm])
@@ -254,7 +265,7 @@ export default function Home() {
                             <table>
                                 <thead>
                                 <tr>
-                                    <th>Entidad</th>
+                                    <th>A</th>
                                     <th>Gold / Dolar</th>
                                     <th>Hora</th>
                                     <th></th>
@@ -335,22 +346,22 @@ export default function Home() {
                                     {dataForm.map((row, index) => (
                                         <tr key={index}>
                                             <td>{index}</td>
-                                            <td style={row.entidadStyle}>{row.formatEn ? formatToMoney(row.Entidad) : row.Entidad}</td>
-                                            <td style={row.goldStyle}>{formatToMoney(row.GoldPrice)}</td>
+                                            <td style={row.entidadStyle}>{row.formatEn ? formatToMoney(row.A) : row.A}</td>
+                                            <td style={row.goldStyle}>{formatToMoney(row.B)}</td>
                                             <td style={row.factorStyle}>
                                                 {row.factorEditable ? (
                                                     <input type="number"
-                                                           value={row.Factor}
+                                                           value={row.C}
                                                            className={'form-control'}
                                                            autoComplete={'off'}
                                                            placeholder={"0.0%"}
                                                            onChange={(e) => {
-                                                               dataForm[index].Factor = e.target.value
+                                                               dataForm[index].C = e.target.value
                                                                setDataForm([...dataForm])
                                                                calculos(data)
                                                            }}
                                                     />
-                                                ) : formatToMoney(row.Factor)}</td>
+                                                ) : formatToMoney(row.C)}</td>
                                         </tr>
                                     ))}
                                     </tbody>
@@ -371,6 +382,7 @@ export default function Home() {
                         </div>
                     </Col>
                 </Row>
+                <span>v46</span>
             </main>
         </>
     );
