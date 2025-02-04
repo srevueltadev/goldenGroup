@@ -44,16 +44,35 @@ export interface DataType{
 
 const bgBlue ={factorStyle:{backgroundColor: "#88a1c8",fontWeight: 'bold'}, goldStyle: {backgroundColor: "#88a1c8",fontWeight: 'bold'}}
 
+let defaultForm = [
+    { A: "ONZA", B: 0, C: 0,goldStyle: {fontWeight: 'bold'},entidadStyle:{fontWeight: 'bold'} },
+    {
+        A: "USD", B: 0, C: 0, entidadStyle: {color: "red",fontWeight: 'bold'},goldStyle: {color: "red",fontWeight: 'bold'}},
+    {A: "Precio real", B: 0, C: 0,entidadStyle:{fontWeight: 'bold'}, goldStyle: {color: "red",fontWeight: 'bold'}},
+    {
+        A: "GOLD",
+        B: 0,
+        C: 0,
+        entidadStyle:{fontWeight: 'bold'},
+        goldStyle: {backgroundColor: "yellow",color:'red',fontWeight: 'bold'},
+        factorStyle: {color: "red"}
+    },
+    { A: "", B: 0, C: "95.5%"},//, goldStyle: {backgroundColor: "#88a1c8"}},
+    { A: "", B: 0, C: "91.3%"},//, goldStyle: {backgroundColor: "#88a1c8"}},
+    { A: "", B: 0, C: "92.3%", formatEn:true,...bgBlue},
+    { A: "", B: 0, C: "92.6%"},//, goldStyle: {backgroundColor: "#88a1c8"}},
+    { A: "", B: 0, C: "93.0%",...bgBlue},//, goldStyle: {backgroundColor: "#88a1c8"}},
+    { A: "", B: 0, C: "94.0%"},//, goldStyle: {backgroundColor: "#88a1c8"}},
+    { A: "", B: 0, C: "98.8%"},//, goldStyle: {backgroundColor: "#88a1c8"}},
+    { A: "", B: 0, C: "99.3%"},//, goldStyle: {backgroundColor: "#88a1c8"}},
+    { A: "", B: 0, C: "",factorEditable:true},//, goldStyle: {backgroundColor: "#88a1c8"}},
+]
+
 export default function Formulario() {
     const [isError, setIsError] = useState(false)
     let defaultwindow = false
-    if (typeof window !== "undefined") {
-        defaultwindow = window.innerWidth <= 468
-    }
-    const [isMobile, setIsMobile] = useState(defaultwindow);
     const dateNow = new Date().toLocaleTimeString()
-    const [timeScrenshot, setTimeScrenshot] = useState('')
-    const [data, setData] = useState<DataType>({
+    let DataDefault = {
         kitco: 0,
         kitco_prom: 0,
         kitco_time: dateNow,
@@ -62,8 +81,22 @@ export default function Formulario() {
         other_time: dateNow,
         dolar: 0,
         dolar_time: dateNow
-    })
+    }
+    if (typeof window !== "undefined") {
+        defaultwindow = window.innerWidth <= 468
+        if(localStorage.getItem('data')){
+            DataDefault = JSON.parse(localStorage.getItem('data') || JSON.stringify(DataDefault))
+        }
+        if(localStorage.getItem('dataForm')){
+            defaultForm = JSON.parse(localStorage.getItem('dataForm') || JSON.stringify(defaultForm))
+        }
+    }
+    const [isMobile, setIsMobile] = useState(defaultwindow);
+    const [timeScrenshot, setTimeScrenshot] = useState('')
+    const [data, setData] = useState<DataType>(DataDefault)
 
+    const [fix] = useState(31.10347)
+    const [dataForm,setDataForm] = useState<FormType[]>(defaultForm);
     const defaultValue = "4333.00"
 
     useEffect(() => {
@@ -77,32 +110,6 @@ export default function Formulario() {
             document.head.removeChild(metaViewport);
         };
     }, []);
-
-    //const [progress, setProgress] = useState(0);
-    const [fix] = useState(31.10347)
-    const [dataForm,setDataForm] = useState<FormType[]>([
-        { A: "ONZA", B: 0, C: 0,goldStyle: {fontWeight: 'bold'},entidadStyle:{fontWeight: 'bold'} },
-        {
-            A: "USD", B: 0, C: 0, entidadStyle: {color: "red",fontWeight: 'bold'},goldStyle: {color: "red",fontWeight: 'bold'}},
-        {A: "Precio real", B: 0, C: 0,entidadStyle:{fontWeight: 'bold'}, goldStyle: {color: "red",fontWeight: 'bold'}},
-        {
-            A: "GOLD",
-            B: 0,
-            C: 0,
-            entidadStyle:{fontWeight: 'bold'},
-            goldStyle: {backgroundColor: "yellow",color:'red',fontWeight: 'bold'},
-            factorStyle: {color: "red"}
-        },
-        { A: "", B: 0, C: "95.5%"},//, goldStyle: {backgroundColor: "#88a1c8"}},
-        { A: "", B: 0, C: "91.3%"},//, goldStyle: {backgroundColor: "#88a1c8"}},
-        { A: "", B: 0, C: "92.3%", formatEn:true,...bgBlue},
-        { A: "", B: 0, C: "92.6%"},//, goldStyle: {backgroundColor: "#88a1c8"}},
-        { A: "", B: 0, C: "93.0%",...bgBlue},//, goldStyle: {backgroundColor: "#88a1c8"}},
-        { A: "", B: 0, C: "94.0%"},//, goldStyle: {backgroundColor: "#88a1c8"}},
-        { A: "", B: 0, C: "98.8%"},//, goldStyle: {backgroundColor: "#88a1c8"}},
-        { A: "", B: 0, C: "99.3%"},//, goldStyle: {backgroundColor: "#88a1c8"}},
-        { A: "", B: 0, C: "",factorEditable:true},//, goldStyle: {backgroundColor: "#88a1c8"}},
-    ]);
 
     const init = async () => {
         const nowData = data
@@ -134,7 +141,7 @@ export default function Formulario() {
         //Sacar promedios con el fix
         nowData.other_prom = ((nowData.other*(res.mid)*(fix)))
         nowData.kitco_prom = ((nowData.kitco*(res.mid)*(fix)))
-
+        localStorage.setItem('data',JSON.stringify(nowData))
         calculos(nowData)
     }
 
@@ -178,6 +185,7 @@ export default function Formulario() {
         for (let i = 4; i <= dataForm.length-1; i++) {
             dataForm[i].B = gold*(Number(String(dataForm[i].C).replace('%','')) / 100)
         }
+        localStorage.setItem('dataForm',JSON.stringify(dataForm))
         setDataForm([...dataForm])
     }
 
@@ -367,7 +375,7 @@ export default function Formulario() {
                         </div>
                     </Col>
                 </Row>
-                <span>v46</span>
+                <span>v49</span>
             </main>
         </>
     );
