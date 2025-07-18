@@ -44,7 +44,7 @@ export interface DataType{
 
 const bgBlue ={factorStyle:{backgroundColor: "#88a1c8",fontWeight: 'bold'}, goldStyle: {backgroundColor: "#88a1c8",fontWeight: 'bold'}}
 
-let defaultForm = [
+const defaultForm = [
     { A: "ONZA", B: 0, C: 0,goldStyle: {fontWeight: 'bold'},entidadStyle:{fontWeight: 'bold'} },
     {
         A: "USD", B: 0, C: 0, entidadStyle: {color: "red",fontWeight: 'bold'},goldStyle: {color: "red",fontWeight: 'bold'}},
@@ -59,9 +59,9 @@ let defaultForm = [
     },
     { A: "", B: 0, C: "95.5%"},//, goldStyle: {backgroundColor: "#88a1c8"}},
     { A: "", B: 0, C: "91.3%"},//, goldStyle: {backgroundColor: "#88a1c8"}},
-    { A: "", B: 0, C: "92.3%", formatEn:true,...bgBlue},
     { A: "", B: 0, C: "92.6%"},//, goldStyle: {backgroundColor: "#88a1c8"}},
     { A: "", B: 0, C: "93.0%",...bgBlue},//, goldStyle: {backgroundColor: "#88a1c8"}},
+    { A: "", B: 0, C: "93.5%", formatEn:true,...bgBlue},
     { A: "", B: 0, C: "94.0%"},//, goldStyle: {backgroundColor: "#88a1c8"}},
     { A: "", B: 0, C: "98.8%"},//, goldStyle: {backgroundColor: "#88a1c8"}},
     { A: "", B: 0, C: "99.3%"},//, goldStyle: {backgroundColor: "#88a1c8"}},
@@ -70,6 +70,7 @@ let defaultForm = [
 
 export default function Formulario() {
     const [isError, setIsError] = useState(false)
+    const [errorKitko, setErrorKitko] = useState(false)
     let defaultwindow = false
     const dateNow = new Date().toLocaleTimeString()
     let DataDefault = {
@@ -88,7 +89,7 @@ export default function Formulario() {
             DataDefault = JSON.parse(localStorage.getItem('data') || JSON.stringify(DataDefault))
         }
         if(localStorage.getItem('dataForm')){
-            defaultForm = JSON.parse(localStorage.getItem('dataForm') || JSON.stringify(defaultForm))
+            //defaultForm = Object.assign(defaultForm,JSON.parse(localStorage.getItem('dataForm') || JSON.stringify(defaultForm)))
         }
     }
     const [isMobile, setIsMobile] = useState(defaultwindow);
@@ -98,6 +99,7 @@ export default function Formulario() {
     const [fix] = useState(31.10347)
     const [dataForm,setDataForm] = useState<FormType[]>(defaultForm);
     const defaultValue = "4333.00"
+    const defaultValueKitco= "3310.08"
 
     useEffect(() => {
         init().then()
@@ -111,27 +113,59 @@ export default function Formulario() {
         };
     }, []);
 
+    useEffect(() => {
+        const originalTitle = document.title;
+
+        const handleBlur = () => {
+            document.title = "¡Vuelve pronto! - Precios de Oro";
+        };
+
+        const handleFocus = () => {
+            document.title = originalTitle;
+        };
+
+        window.addEventListener('blur', handleBlur);
+        window.addEventListener('focus', handleFocus);
+
+        return () => {
+            window.removeEventListener('blur', handleBlur);
+            window.removeEventListener('focus', handleFocus);
+            document.title = originalTitle;
+        };
+    }, [data.dolar]);
+
     const init = async () => {
         const nowData = data
 
         let res = await api.kitco()
-        nowData.kitco = res.mid-2
-        nowData.kitco_time = new Date().toLocaleTimeString()
+        if(res.mid === 0){
+            nowData.kitco_time = new Date().toLocaleTimeString()
+            if (typeof window !== "undefined") {
+                nowData.kitco = Number(localStorage.getItem('kitco') || defaultValueKitco)
+            }
+            setErrorKitko(true)
+        }else{
+            nowData.kitco = res.mid-2
+            nowData.kitco_time = new Date().toLocaleTimeString()
+            setErrorKitko(false)
+            if (typeof window !== "undefined") {
+                localStorage.setItem('kitco',String(res.mid))
+            }
+        }
 
         res = await api.other()
         nowData.other = (res.mid)
         nowData.other_time = new Date().toLocaleTimeString()
 
         res = await api.bancodebogota()
+        nowData.dolar_time = new Date().toLocaleTimeString()
         if(res.mid === 0){
             if (typeof window !== "undefined") {
-                nowData.dolar_time = new Date().toLocaleTimeString()
                 nowData.dolar = Number(localStorage.getItem('dolar') || defaultValue)
             }
             setIsError(true)
         }else{
             nowData.dolar = res.mid
-            nowData.dolar_time = new Date().toLocaleTimeString()
             setIsError(false)
             if (typeof window !== "undefined") {
                 localStorage.setItem('dolar',String(res.mid))
@@ -140,7 +174,7 @@ export default function Formulario() {
 
         //Sacar promedios con el fix
         nowData.other_prom = ((nowData.other*(res.mid)*(fix)))
-        nowData.kitco_prom = ((nowData.kitco*(res.mid)*(fix)))
+        nowData.kitco_prom = (((errorKitko?(nowData.kitco-2):nowData.kitco) *(res.mid)*(fix)))
         localStorage.setItem('data',JSON.stringify(nowData))
         calculos(nowData)
     }
@@ -160,8 +194,8 @@ export default function Formulario() {
     const calculos = (nowData:DataType) =>{
         setData({...nowData})
 
-        dataForm[0].B = nowData.kitco;
-        dataForm[0].C = nowData.kitco*(95.5/100);
+        dataForm[0].B = (errorKitko?(nowData.kitco-2):nowData.kitco);
+        dataForm[0].C = (errorKitko?(nowData.kitco-2):nowData.kitco)*(95.5/100);
 
         dataForm[1].B = nowData.dolar;
         dataForm[1].C = nowData.dolar-85;
@@ -170,7 +204,7 @@ export default function Formulario() {
         dataForm[3].C = nowData.other_prom
 
         dataForm[4].A = String(fix);//Fix
-        dataForm[6].A = String(nowData.kitco*nowData.dolar); //calcuo 2
+        dataForm[6].A = String((errorKitko?(nowData.kitco-2):nowData.kitco)*nowData.dolar); //calcuo 2
 
         //precio real
         dataForm[2].B = Number(dataForm[6].A)/Number(dataForm[4].A) * 1000// resultado
@@ -246,14 +280,13 @@ export default function Formulario() {
 
     };
 
-
     return (
         <>
             <ToastContainer />
             <main className={'card'}>
                 <Row>
                     <Col>
-                        <div className={'table-container'} key={data.kitco}>
+                        <div className={'table-container'} key={data.other}>
                             <table>
                                 <thead>
                                 <tr>
@@ -264,12 +297,42 @@ export default function Formulario() {
                                 </tr>
                                 </thead>
                                 <tbody>
-                                <tr>
-                                    <td className={'justify-content-between'}>Kitco</td>
-                                    <td>{formatToMoney(data.kitco)}</td>
-                                    <td>{String(data.kitco_time?.split(" ")[0])}</td>
-                                    <td>{formatToMoney(data.kitco_prom)}</td>
-                                </tr>
+                                {errorKitko ? (
+                                    <tr>
+                                        <td>Ingrese Kitco</td>
+                                        <td>
+                                            <input
+                                                type={"number"}
+                                                className={'form-control'}
+                                                name={'kitco'}
+                                                placeholder={"kitco"}
+                                                autoComplete={'off'}
+                                                value={data.kitco}
+                                                onChange={(e) => {
+                                                    const nowData = {...data}
+
+                                                    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                                                    // @ts-expect-error
+                                                    nowData.kitco = Number(e.target.value) || null;
+                                                    setData({...nowData})
+                                                    calculos(nowData)
+                                                    if (typeof window !== "undefined") {
+                                                        localStorage.setItem('kitco', String(e.target.value || null))
+                                                    }
+                                                }}
+                                            />
+                                        </td>
+                                        <td>{String(data.kitco_time?.split(" ")[0])}</td>
+                                        <td>{formatToMoney(data.kitco_prom)}</td>
+                                    </tr>
+                                    ):(
+                                        <tr>
+                                            <td className={'justify-content-between'}>Kitco</td>
+                                            <td>{formatToMoney(data.kitco)}</td>
+                                            <td>{String(data.kitco_time?.split(" ")[0])}</td>
+                                            <td>{formatToMoney(data.kitco_prom)}</td>
+                                        </tr>
+                                )}
                                 <tr>
                                     <td>Gold Price</td>
                                     <td>{formatToMoney(data.other)}</td>
@@ -375,7 +438,7 @@ export default function Formulario() {
                         </div>
                     </Col>
                 </Row>
-                <span>v49</span>
+                <span>v50</span>
             </main>
         </>
     );
