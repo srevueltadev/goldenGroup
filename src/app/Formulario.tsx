@@ -57,11 +57,11 @@ const defaultForm = [
         goldStyle: {backgroundColor: "yellow",color:'red',fontWeight: 'bold'},
         factorStyle: {color: "red"}
     },
-    { A: "", B: 0, C: "95.5%"},//, goldStyle: {backgroundColor: "#88a1c8"}},
-    { A: "", B: 0, C: "91.3%"},//, goldStyle: {backgroundColor: "#88a1c8"}},
-    { A: "", B: 0, C: "92.6%"},//, goldStyle: {backgroundColor: "#88a1c8"}},
+    //{ A: "", B: 0, C: "95.5%"},//, goldStyle: {backgroundColor: "#88a1c8"}},
+    //{ A: "", B: 0, C: "91.3%"},//, goldStyle: {backgroundColor: "#88a1c8"}},
+    //{ A: "", B: 0, C: "92.6%"},//, goldStyle: {backgroundColor: "#88a1c8"}},
     { A: "", B: 0, C: "93.0%",...bgBlue},//, goldStyle: {backgroundColor: "#88a1c8"}},
-    { A: "", B: 0, C: "93.5%", formatEn:true,...bgBlue},
+    { A: "", B: 0, C: "93.5%", ...bgBlue},//formatEn:true,
     { A: "", B: 0, C: "94.0%"},//, goldStyle: {backgroundColor: "#88a1c8"}},
     { A: "", B: 0, C: "98.8%"},//, goldStyle: {backgroundColor: "#88a1c8"}},
     { A: "", B: 0, C: "99.3%"},//, goldStyle: {backgroundColor: "#88a1c8"}},
@@ -204,6 +204,7 @@ export default function Formulario() {
         dataForm[3].C = nowData.other_prom
 
         dataForm[4].A = String(fix);//Fix
+        // A6 Si se cambia cambiar mas abajo
         dataForm[6].A = String((errorKitko?(nowData.kitco-2):nowData.kitco)*nowData.dolar); //calcuo 2
 
         //precio real
@@ -438,7 +439,7 @@ export default function Formulario() {
                         </div>
                     </Col>
                 </Row>
-                <span>v50</span>
+                <span>v52</span>
             </main>
         </>
     );
