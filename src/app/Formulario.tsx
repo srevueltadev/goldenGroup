@@ -21,7 +21,7 @@ function formatToMoney(value: number | string, locale = 'en-US', currency = 'USD
 }
 
 export interface FormType{
-    A: string;
+    A: string | number;
     B: number;
     C: string | number;
     formatEn?: boolean;
@@ -62,9 +62,11 @@ const defaultForm = [
     //{ A: "", B: 0, C: "92.6%"},//, goldStyle: {backgroundColor: "#88a1c8"}},
     { A: "", B: 0, C: "93.0%",...bgBlue},//, goldStyle: {backgroundColor: "#88a1c8"}},
     { A: "", B: 0, C: "93.5%", ...bgBlue},//formatEn:true,
+    { A: "", B: 0, C: "94.0%"},//, goldStyle: {backgroundColor: "#88a1c8"}},
     { A: "", B: 0, C: "94.5%"},//, goldStyle: {backgroundColor: "#88a1c8"}},
-    { A: "", B: 0, C: "98.8%"},//, goldStyle: {backgroundColor: "#88a1c8"}},
-    { A: "", B: 0, C: "99.3%"},//, goldStyle: {backgroundColor: "#88a1c8"}},
+    { A: "", B: 0, C: "95.0%"},//, goldStyle: {backgroundColor: "#88a1c8"}},
+    //{ A: "", B: 0, C: "98.8%"},//, goldStyle: {backgroundColor: "#88a1c8"}},
+    //{ A: "", B: 0, C: "99.3%"},//, goldStyle: {backgroundColor: "#88a1c8"}},
     { A: "", B: 0, C: "",factorEditable:true},//, goldStyle: {backgroundColor: "#88a1c8"}},
 ]
 
@@ -205,10 +207,13 @@ export default function Formulario() {
 
         dataForm[4].A = String(fix);//Fix
         // A6 Si se cambia cambiar mas abajo
-        dataForm[6].A = String((errorKitko?(nowData.kitco-2):nowData.kitco)*nowData.dolar); //calcuo 2
+        dataForm[5].A = String((errorKitko?(nowData.kitco-2):nowData.kitco)*nowData.dolar); //calculo 2
+
+        //Esto lo movi
+        dataForm[6].A = formatToMoney((dataForm[3].B*94.0)/100)
 
         //precio real
-        dataForm[2].B = Number(dataForm[6].A)/Number(dataForm[4].A) * 1000// resultado
+        dataForm[2].B = Number(dataForm[5].A)/Number(dataForm[4].A) * 1000// resultado
         // C0 * C1 / A4
         dataForm[2].C = (Number(dataForm[0].C)*Number(dataForm[1].C))/Number(fix) // resultado
 
@@ -220,6 +225,11 @@ export default function Formulario() {
         for (let i = 4; i <= dataForm.length-1; i++) {
             dataForm[i].B = gold*(Number(String(dataForm[i].C).replace('%','')) / 100)
         }
+
+        //Esto lo movi
+        dataForm[7].A = formatToMoney(dataForm[6].B-dataForm[3].C) //calculo 3
+
+
         localStorage.setItem('dataForm',JSON.stringify(dataForm))
         setDataForm([...dataForm])
     }
@@ -439,7 +449,7 @@ export default function Formulario() {
                         </div>
                     </Col>
                 </Row>
-                <span>v53</span>
+                <span>v55</span>
             </main>
         </>
     );
