@@ -2,10 +2,10 @@ import axios from "axios";
 
 
 const api = {
-    bancodebogota: async () => {
+    bancodebogota: async (signal?: AbortSignal) => {
         const result = {mid:0}
        try {
-           const response = await fetch('/api/getUsd');
+           const response = await fetch('/api/getUsd', { signal });
            const data = await response.json();
            if(data.usd){
                result.mid = Number(data.usd[0].split(':')[1].trim().replaceAll(',','.'))
@@ -18,7 +18,7 @@ const api = {
             return result
        }
     },
-    kitco: async () => {
+    kitco: async (signal?: AbortSignal) => {
         const res = {mid:0};
         const time = Date.now()
         try {
@@ -37,7 +37,9 @@ const api = {
                         "timestamp": timestamp
                     },
                     operationName: 'GetNivoData'
-                }
+                },
+                timeout: 10000,
+                signal
             };
             await axios.request(options).then(function (response) {
                 res.mid = response.data.data.now.results[0].bid
@@ -50,10 +52,10 @@ const api = {
             return res;
         }
     },
-    other: async ()=>{
+    other: async (signal?: AbortSignal)=>{
         const res = {mid:0};
      try {
-         const response = await axios.get(`https://data-asg.goldprice.org/dbXRates/COP`);
+         const response = await axios.get(`https://data-asg.goldprice.org/dbXRates/COP`, { timeout: 10000, signal });
          const result = response.data;
          res.mid = Number((result.items[0]['xauPrice']* 32.1507466).toFixed(2))
          return res

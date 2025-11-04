@@ -1,9 +1,8 @@
 'use client'
-import React, {useEffect, useRef, useState} from "react";
+import React, {useCallback, useEffect, useRef, useState} from "react";
 import api from "@/app/api";
 import {Col, Row} from "react-bootstrap";
 
-import html2canvas from "html2canvas";
 import {toast, ToastContainer} from "react-toastify";
 
 function formatToMoney(value: number | string, locale = 'en-US', currency = 'USD') {
@@ -104,7 +103,7 @@ export default function Formulario() {
     const defaultValueKitco= "3310.08"
 
     useEffect(() => {
-        init().then()
+        init().then(() => {});
         const metaViewport = document.createElement('meta');
         metaViewport.name = 'viewport';
         metaViewport.content = 'width=device-width, initial-scale=1.0, user-scalable=no';
@@ -113,6 +112,7 @@ export default function Formulario() {
         return () => {
             document.head.removeChild(metaViewport);
         };
+     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     useEffect(() => {
@@ -136,7 +136,25 @@ export default function Formulario() {
         };
     }, [data.dolar]);
 
-    const init = async () => {
+    const abortRef = useRef<AbortController | null>(null)
+    const baseInterval = 15000
+    const maxInterval = 60000
+    const intervalRef = useRef(baseInterval)
+    const lastDataRef = useRef<DataType | null>(null)
+    const lastSaveRef = useRef(0)
+
+    const saveIfChanged = (key: string, value: unknown, throttleMs = 2000) => {
+        if (typeof window === 'undefined') return
+        const now = Date.now()
+        const prev = localStorage.getItem(key)
+        const next = JSON.stringify(value)
+        if (prev !== next && now - lastSaveRef.current > throttleMs) {
+            localStorage.setItem(key, next)
+            lastSaveRef.current = now
+        }
+    }
+
+    const init = useCallback(async () => {
         const nowData = data
 
         let res = await api.kitco()
@@ -177,61 +195,137 @@ export default function Formulario() {
         //Sacar promedios con el fix
         nowData.other_prom = ((nowData.other*(res.mid)*(fix)))
         nowData.kitco_prom = (((errorKitko?(nowData.kitco-2):nowData.kitco) *(res.mid)*(fix)))
-        localStorage.setItem('data',JSON.stringify(nowData))
+        saveIfChanged('data', nowData)
         calculos(nowData)
-    }
+    }, []);
 
 
     useEffect(() => {
-        const time = setInterval(() => {
-            init().then()
-        }, 15000);
+        let handle: number | undefined
+        let stopped = false
 
+        const loop = async () => {
+            if (document.visibilityState !== 'visible') return
+            // cancel previous
+            abortRef.current?.abort()
+            const ctrl = new AbortController()
+            abortRef.current = ctrl
+            try {
+                const before = JSON.stringify(lastDataRef.current)
+                // pass signal to api
+                const kitco = await api.kitco(ctrl.signal)
+                const other = await api.other(ctrl.signal)
+                const banco = await api.bancodebogota(ctrl.signal)
+
+                // Build nowData based on previous state to avoid stale
+                const nowData = {
+                    ...data,
+                    kitco: kitco.mid ? kitco.mid - 2 : data.kitco,
+                    kitco_time: new Date().toLocaleTimeString(),
+                    other: other.mid || data.other,
+                    other_time: new Date().toLocaleTimeString(),
+                    dolar: banco.mid || data.dolar,
+                    dolar_time: new Date().toLocaleTimeString(),
+                } as DataType
+
+                // recompute prom based on dolar result present or previous
+                const dolarToUse = banco.mid || data.dolar
+                const kitcoVal = kitco.mid ? kitco.mid : nowData.kitco + 2
+                const kVal = (errorKitko ? kitcoVal - 2 : kitcoVal)
+                nowData.other_prom = (nowData.other * (dolarToUse) * (fix))
+                nowData.kitco_prom = (kVal * (dolarToUse) * (fix))
+
+                const after = JSON.stringify(nowData)
+                const changed = before !== after
+                if (changed) {
+                    lastDataRef.current = nowData
+                    saveIfChanged('data', nowData)
+                    calculos(nowData)
+                    intervalRef.current = baseInterval
+                } else {
+                    intervalRef.current = Math.min(maxInterval, intervalRef.current * 2)
+                }
+            } catch (e) {
+                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                // @ts-expect-error
+                if (e?.name !== 'AbortError') {
+                    // backoff on errors
+                    intervalRef.current = Math.min(maxInterval, intervalRef.current * 2)
+                }
+            } finally {
+                if (!stopped && document.visibilityState === 'visible') {
+                    handle = window.setTimeout(loop, intervalRef.current)
+                }
+            }
+        }
+
+        const onVisibility = () => {
+            if (document.visibilityState === 'visible') {
+                if (handle) clearTimeout(handle)
+                loop().then()
+            } else {
+                if (handle) clearTimeout(handle)
+                abortRef.current?.abort()
+            }
+        }
+
+        document.addEventListener('visibilitychange', onVisibility)
+        // first run
+        loop().then()
         return () => {
-            clearInterval(time)
-        };
+            stopped = true
+            if (handle) clearTimeout(handle)
+            abortRef.current?.abort()
+            document.removeEventListener('visibilitychange', onVisibility)
+        }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const calculos = (nowData:DataType) =>{
         setData({...nowData})
 
-        dataForm[0].B = (errorKitko?(nowData.kitco-2):nowData.kitco);
-        dataForm[0].C = (errorKitko?(nowData.kitco-2):nowData.kitco)*(95.5/100);
+        // clone dataForm to avoid in-place mutation
+        const newDataForm = dataForm.map((row) => ({...row}))
 
-        dataForm[1].B = nowData.dolar;
-        dataForm[1].C = nowData.dolar-85;
+        newDataForm[0].B = (errorKitko?(nowData.kitco-2):nowData.kitco);
+        newDataForm[0].C = (errorKitko?(nowData.kitco-2):nowData.kitco)*(95.5/100);
 
-        dataForm[3].B = Number(nowData.other)//Number(parseFloat(String(data.other_prom)).toFixed(2));
-        dataForm[3].C = nowData.other_prom
+        newDataForm[1].B = nowData.dolar;
+        newDataForm[1].C = nowData.dolar-85;
 
-        dataForm[4].A = String(fix);//Fix
+        newDataForm[3].B = Number(nowData.other)//Number(parseFloat(String(data.other_prom)).toFixed(2));
+        newDataForm[3].C = nowData.other_prom
+
+        newDataForm[4].A = String(fix);//Fix
         // A6 Si se cambia cambiar mas abajo
-        dataForm[5].A = String((errorKitko?(nowData.kitco-2):nowData.kitco)*nowData.dolar); //calculo 2
+        newDataForm[5].A = String((errorKitko?(nowData.kitco-2):nowData.kitco)*nowData.dolar); //calculo 2
 
         //Esto lo movi
-        dataForm[6].A = formatToMoney((dataForm[3].B*94.0)/100)
+        newDataForm[6].A = formatToMoney((newDataForm[3].B*94.0)/100)
 
         //precio real
-        dataForm[2].B = Number(dataForm[5].A)/Number(dataForm[4].A) * 1000// resultado
+        newDataForm[2].B = Number(newDataForm[5].A)/Number(newDataForm[4].A) * 1000// resultado
         // C0 * C1 / A4
-        dataForm[2].C = (Number(dataForm[0].C)*Number(dataForm[1].C))/Number(fix) // resultado
+        newDataForm[2].C = (Number(newDataForm[0].C)*Number(newDataForm[1].C))/Number(fix) // resultado
 
         //resta
-        dataForm[3].C = dataForm[2].B-dataForm[3].B;// resultado
+        newDataForm[3].C = newDataForm[2].B-newDataForm[3].B;// resultado
 
         //porcentajes
-        const gold =  dataForm[2].B
-        for (let i = 4; i <= dataForm.length-1; i++) {
-            dataForm[i].B = gold*(Number(String(dataForm[i].C).replace('%','')) / 100)
+        const gold =  newDataForm[2].B
+        for (let i = 4; i <= newDataForm.length-1; i++) {
+            newDataForm[i].B = gold*(Number(String(newDataForm[i].C).replace('%','')) / 100)
         }
 
         //Esto lo movi
-        dataForm[7].A = formatToMoney(dataForm[6].B-dataForm[3].C) //calculo 3
+        newDataForm[7].A = formatToMoney(newDataForm[6].B-newDataForm[3].C) //calculo 3
 
-
-        localStorage.setItem('dataForm',JSON.stringify(dataForm))
-        setDataForm([...dataForm])
+        const prev = JSON.stringify(dataForm)
+        const next = JSON.stringify(newDataForm)
+        if (prev !== next){
+            saveIfChanged('dataForm', newDataForm)
+            setDataForm(newDataForm)
+        }
     }
 
     useEffect(() => {
@@ -247,6 +341,7 @@ export default function Formulario() {
     const handleCapture = async () => {
         if (captureRef.current) {
             try {
+                const { default: html2canvas } = await import('html2canvas')
                 const canvas = await html2canvas(captureRef.current);
                 canvas.toBlob(async (blob) => {
                     if (blob) {
@@ -449,7 +544,7 @@ export default function Formulario() {
                         </div>
                     </Col>
                 </Row>
-                <span>v55</span>
+                <span>v2.0</span>
             </main>
         </>
     );
