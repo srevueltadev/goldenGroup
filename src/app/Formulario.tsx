@@ -57,13 +57,18 @@ const defaultForm = [
         factorStyle: {color: "red"}
     },
     //{ A: "", B: 0, C: "95.5%"},//, goldStyle: {backgroundColor: "#88a1c8"}},
-    //{ A: "", B: 0, C: "91.3%"},//, goldStyle: {backgroundColor: "#88a1c8"}},
-    //{ A: "", B: 0, C: "92.6%"},//, goldStyle: {backgroundColor: "#88a1c8"}},
+    { A: "", B: 0, C: ""},
+    { A: "", B: 0, C: ""},
+    { A: "", B: 0, C: "91.0%"},//, goldStyle: {backgroundColor: "#88a1c8"}},
+    { A: "", B: 0, C: "91.5%"},//, goldStyle: {backgroundColor: "#88a1c8"}},
+    { A: "", B: 0, C: "92.0%"},//, goldStyle: {backgroundColor: "#88a1c8"}},
+    { A: "", B: 0, C: "92.5%"},//, goldStyle: {backgroundColor: "#88a1c8"}},
     { A: "", B: 0, C: "93.0%",...bgBlue},//, goldStyle: {backgroundColor: "#88a1c8"}},
     { A: "", B: 0, C: "93.5%", ...bgBlue},//formatEn:true,
-    { A: "", B: 0, C: "94.0%"},//, goldStyle: {backgroundColor: "#88a1c8"}},
-    { A: "", B: 0, C: "94.5%"},//, goldStyle: {backgroundColor: "#88a1c8"}},
-    { A: "", B: 0, C: "95.0%"},//, goldStyle: {backgroundColor: "#88a1c8"}},
+    //{ A: "", B: 0, C: "94.0%"},//, goldStyle: {backgroundColor: "#88a1c8"}},
+    //{ A: "", B: 0, C: "94.0%"},//, goldStyle: {backgroundColor: "#88a1c8"}},
+    //{ A: "", B: 0, C: "94.5%"},//, goldStyle: {backgroundColor: "#88a1c8"}},
+    //{ A: "", B: 0, C: "95.0%"},//, goldStyle: {backgroundColor: "#88a1c8"}},
     //{ A: "", B: 0, C: "98.8%"},//, goldStyle: {backgroundColor: "#88a1c8"}},
     //{ A: "", B: 0, C: "99.3%"},//, goldStyle: {backgroundColor: "#88a1c8"}},
     { A: "", B: 0, C: "",factorEditable:true},//, goldStyle: {backgroundColor: "#88a1c8"}},
@@ -194,7 +199,7 @@ export default function Formulario() {
 
         //Sacar promedios con el fix
         nowData.other_prom = ((nowData.other*(res.mid)*(fix)))
-        nowData.kitco_prom = (((errorKitko?(nowData.kitco-2):nowData.kitco) *(res.mid)*(fix)))
+        nowData.kitco_prom = (((errorKitko?(nowData.kitco):nowData.kitco) *(res.mid)*(fix)))
         saveIfChanged('data', nowData)
         calculos(nowData)
     }, []);
@@ -287,38 +292,43 @@ export default function Formulario() {
         // clone dataForm to avoid in-place mutation
         const newDataForm = dataForm.map((row) => ({...row}))
 
-        newDataForm[0].B = (errorKitko?(nowData.kitco-2):nowData.kitco);
-        newDataForm[0].C = (errorKitko?(nowData.kitco-2):nowData.kitco)*(95.5/100);
+        newDataForm[0].B = nowData.kitco;
+
+        newDataForm[0].C = newDataForm[0].B*(fix);
 
         newDataForm[1].B = nowData.dolar;
-        newDataForm[1].C = nowData.dolar-85;
+        newDataForm[1].C = (newDataForm[1].B)+10;
 
         newDataForm[3].B = Number(nowData.other)//Number(parseFloat(String(data.other_prom)).toFixed(2));
         newDataForm[3].C = nowData.other_prom
 
         newDataForm[4].A = String(fix);//Fix
         // A6 Si se cambia cambiar mas abajo
-        newDataForm[5].A = String((errorKitko?(nowData.kitco-2):nowData.kitco)*nowData.dolar); //calculo 2
+        newDataForm[5].A = String(newDataForm[0].B*nowData.dolar); //calculo 2
 
         //Esto lo movi
-        newDataForm[6].A = formatToMoney((newDataForm[3].B*94.0)/100)
+        //newDataForm[10].A = formatToMoney((newDataForm[3].B*94.0)/100)
 
         //precio real
         newDataForm[2].B = Number(newDataForm[5].A)/Number(newDataForm[4].A) * 1000// resultado
         // C0 * C1 / A4
-        newDataForm[2].C = (Number(newDataForm[0].C)*Number(newDataForm[1].C))/Number(fix) // resultado
+        //newDataForm[2].C = (Number(newDataForm[0].C)*Number(newDataForm[1].C))/Number(fix) // resultado
+        //newDataForm[2].C = (Number(newDataForm[0].C)*Number(newDataForm[1].C))/Number(fix) // resultado
+
 
         //resta
         newDataForm[3].C = newDataForm[2].B-newDataForm[3].B;// resultado
 
         //porcentajes
         const gold =  newDataForm[2].B
-        for (let i = 4; i <= newDataForm.length-1; i++) {
+        const goldDirect =  newDataForm[3].B
+        for (let i = 6; i <= newDataForm.length-1; i++) {
             newDataForm[i].B = gold*(Number(String(newDataForm[i].C).replace('%','')) / 100)
+            newDataForm[i].A = formatToMoney(goldDirect*(Number(String(newDataForm[i].C).replace('%','')) / 100))
         }
 
         //Esto lo movi
-        newDataForm[7].A = formatToMoney(newDataForm[6].B-newDataForm[3].C) //calculo 3
+        //newDataForm[7].A = formatToMoney(newDataForm[6].B-newDataForm[3].C) //calculo 3
 
         const prev = JSON.stringify(dataForm)
         const next = JSON.stringify(newDataForm)
@@ -445,6 +455,12 @@ export default function Formulario() {
                                     <td>{String(data.other_time?.split(" ")[0])}</td>
                                     <td>{formatToMoney(data.other_prom)}</td>
                                 </tr>
+                                {/*<tr>*/}
+                                {/*    <td>Tradingview</td>*/}
+                                {/*    <td></td>*/}
+                                {/*    <td></td>*/}
+                                {/*    <td></td>*/}
+                                {/*</tr>*/}
                                 {isError ? (
                                     <tr>
                                         <td>Ingrese dolar ⬇</td>
@@ -544,7 +560,7 @@ export default function Formulario() {
                         </div>
                     </Col>
                 </Row>
-                <span>v2.0</span>
+                <span>v2.1</span>
             </main>
         </>
     );
