@@ -26,6 +26,7 @@ export interface FormType {
 export interface DataType {
     gold: number;
     gold_time?: string;
+    gold_date?: string;
     gold_prom: number;
     dolar: number;
     dolar_time?: string;
@@ -56,8 +57,8 @@ export default function Formulario() {
     const dateNow = new Date().toLocaleTimeString()
     let DataDefault = {
         gold: 0,
-        gold_prom: 0,
         gold_time: dateNow,
+        gold_date: "",
         dolar: 0,
         dolar_time: dateNow
     }
@@ -142,7 +143,9 @@ export default function Formulario() {
     const init = useCallback(async () => {
         const nowData = data
         let res = await api.goldPrice()
-        nowData.gold = (res.mid)
+        nowData.gold = res.mid
+        console.log(res)
+        nowData.gold_date = res.time
         nowData.gold_time = new Date().toLocaleTimeString()
 
         res = await api.bancodebogota()
@@ -189,6 +192,7 @@ export default function Formulario() {
                 const nowData = {
                     ...data,
                     gold: gold.mid || data.gold,
+                    gold_date: gold.time,
                     gold_time: new Date().toLocaleTimeString(),
                     dolar: banco.mid || data.dolar,
                     dolar_time: new Date().toLocaleTimeString(),
@@ -263,7 +267,7 @@ export default function Formulario() {
 
         for (let i = 0; i <= newDataForm.length - 1; i++) {
             const porcentaje = Number(String(newDataForm[i].C).replace('%', ''))
-            newDataForm[i].B = String(Math.floor(multi * porcentaje / 100)).substring(0, 6)
+            newDataForm[i].B = String(Math.floor(multi * porcentaje / 100))
         }
         const prev = JSON.stringify(dataForm)
         const next = JSON.stringify(newDataForm)
@@ -380,10 +384,10 @@ export default function Formulario() {
                             )}
                         </div>
                         <div className="info-card-right">
-                            <span className="info-card-time">⏰ {data.dolar_time?.split(" ")[0]}</span>
-                            {/*<span className="info-card-extra">*/}
-                            {/*    {isError ? formatToMoney(data.dolar) : "Dolar compra"}*/}
-                            {/*</span>*/}
+                            <span className="info-card-time">{data.dolar_time}</span>
+                            <span className="info-card-extra">
+
+                            </span>
                         </div>
                     </div>
                     {/* Gold Price Card */}
@@ -393,8 +397,11 @@ export default function Formulario() {
                             <span className="info-card-value">{formatToMoney(data.gold)}</span>
                         </div>
                         <div className="info-card-right">
-                            <span className="info-card-time">⏰ {String(data.gold_time?.split(" ")[0])}</span>
-                            {/*<span className="info-card-extra">{formatToMoney(data.gold_prom)}</span>*/}
+                            <span className="info-card-time">{String(data.gold_time)}</span>
+                            <span className="info-card-extra">
+                              {data.gold_date}
+                            </span>
+
                         </div>
                     </div>
 
