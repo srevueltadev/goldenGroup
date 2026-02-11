@@ -1,5 +1,4 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { withAuth } from './middleware';
 
 interface GoldPriceData {
     items: Array<{
@@ -69,5 +68,5 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     }
 }
 
-export default withAuth(handler);
+export default handler;
 
