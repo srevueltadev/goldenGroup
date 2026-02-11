@@ -1,11 +1,25 @@
 import axios from "axios";
 
+function getAuthToken(): string | null {
+    if (typeof window !== 'undefined') {
+        return localStorage.getItem('authToken');
+    }
+    return null;
+}
+
+function getAuthHeaders(): HeadersInit {
+    const token = getAuthToken();
+    return token ? { 'Authorization': `Bearer ${token}` } : {};
+}
 
 const api = {
     bancodebogota: async (signal?: AbortSignal) => {
         const result = {mid:0}
        try {
-           const response = await fetch('/api/getUsd', { signal });
+           const response = await fetch('/api/getUsd', {
+               signal,
+               headers: getAuthHeaders()
+           });
            const data = await response.json();
            if(data.usd){
                result.mid = Number(data.usd[0].split(':')[1].trim().replaceAll(',','.'))
