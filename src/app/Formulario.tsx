@@ -12,7 +12,7 @@ function formatToMoney(value: number | string) {
     return numValue.toLocaleString('es-CO');
 }
 
-export interface FormType{
+export interface FormType {
     A: string | number;
     B: number | string;
     C: string | number;
@@ -34,20 +34,20 @@ export interface DataType {
 //const bgBlue ={factorStyle:{backgroundColor: "#88a1c8",fontWeight: 'bold'}, goldStyle: {backgroundColor: "#88a1c8",fontWeight: 'bold'}}
 
 const defaultForm = [
-    { A: "", B: 0, C: "89.5%"},
-    { A: "", B: 0, C: "90.0%"},
-    { A: "", B: 0, C: "90.5%"},
-    { A: "", B: 0, C: "91.0%"},
-    { A: "", B: 0, C: "91.5%"},
-    { A: "", B: 0, C: "91.6%"},
-    { A: "", B: 0, C: "91.7%"},
-    { A: "", B: 0, C: "91.8%"},
-    { A: "", B: 0, C: "91.9%"},
-    { A: "", B: 0, C: "92.0%"},
-    { A: "", B: 0, C: "97.8%"},
-    { A: "", B: 0, C: "98.0%"},
-    { A: "", B: 0, C: "98.3%"},
-    { A: "", B: 0, C: "",factorEditable:true},
+    {A: "", B: 0, C: "89.5%"},
+    {A: "", B: 0, C: "90.0%"},
+    {A: "", B: 0, C: "90.5%"},
+    {A: "", B: 0, C: "91.0%"},
+    {A: "", B: 0, C: "91.5%"},
+    {A: "", B: 0, C: "91.6%"},
+    {A: "", B: 0, C: "91.7%"},
+    {A: "", B: 0, C: "91.8%"},
+    {A: "", B: 0, C: "91.9%"},
+    {A: "", B: 0, C: "92.0%"},
+    {A: "", B: 0, C: "97.8%"},
+    {A: "", B: 0, C: "98.0%"},
+    {A: "", B: 0, C: "98.3%"},
+    {A: "", B: 0, C: "", factorEditable: true},
 ]
 
 export default function Formulario() {
@@ -63,17 +63,18 @@ export default function Formulario() {
     }
     if (typeof window !== "undefined") {
         defaultwindow = window.innerWidth <= 468
-        if(localStorage.getItem('data')){
+        if (localStorage.getItem('data')) {
             DataDefault = JSON.parse(localStorage.getItem('data') || JSON.stringify(DataDefault))
         }
     }
+    const [image, setImage] = useState(null)
     const [isMobile, setIsMobile] = useState(defaultwindow);
     const [timeScrenshot, setTimeScrenshot] = useState('')
     const [data, setData] = useState<DataType>(DataDefault)
     const [countdown, setCountdown] = useState(0)
 
     const [fix] = useState(31.1034768)
-    const [dataForm,setDataForm] = useState<FormType[]>(defaultForm);
+    const [dataForm, setDataForm] = useState<FormType[]>(defaultForm);
     const defaultValue = "4333.00"
 
     const handleLogout = () => {
@@ -85,7 +86,8 @@ export default function Formulario() {
     };
 
     useEffect(() => {
-        init().then(() => {});
+        init().then(() => {
+        });
         const metaViewport = document.createElement('meta');
         metaViewport.name = 'viewport';
         metaViewport.content = 'width=device-width, initial-scale=1.0, user-scalable=no';
@@ -94,7 +96,7 @@ export default function Formulario() {
         return () => {
             document.head.removeChild(metaViewport);
         };
-     // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     useEffect(() => {
@@ -145,16 +147,21 @@ export default function Formulario() {
 
         res = await api.bancodebogota()
         nowData.dolar_time = new Date().toLocaleTimeString()
-        if(res.mid === 0){
+        if (res.image) {
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-expect-error
+            setImage(res?.image.replace('..', ''))
+        }
+        if (res.mid === 0) {
             if (typeof window !== "undefined") {
                 nowData.dolar = Number(localStorage.getItem('dolar') || defaultValue)
             }
             setIsError(true)
-        }else{
+        } else {
             nowData.dolar = res.mid
             setIsError(false)
             if (typeof window !== "undefined") {
-                localStorage.setItem('dolar',String(res.mid))
+                localStorage.setItem('dolar', String(res.mid))
             }
         }
         saveIfChanged('data', nowData)
@@ -245,22 +252,22 @@ export default function Formulario() {
         return () => clearInterval(countdownInterval)
     }, [])
 
-    const calculos = (nowData:DataType) =>{
+    const calculos = (nowData: DataType) => {
         setData({...nowData})
 
         // clone dataForm to avoid in-place mutation
         const newDataForm = dataForm.map((row) => ({...row}))
         //porcentajes
 
-        const multi = (nowData.gold*nowData.dolar)/fix
+        const multi = ((Number(nowData.gold) *  Number(nowData.dolar)) / fix)  * 1000
 
-        for (let i = 0; i <= newDataForm.length-1; i++) {
-            const porcentaje = Number(String(newDataForm[i].C).replace('%',''))
+        for (let i = 0; i <= newDataForm.length - 1; i++) {
+            const porcentaje = Number(String(newDataForm[i].C).replace('%', ''))
             newDataForm[i].B = String(Math.floor(multi * porcentaje / 100)).substring(0, 6)
         }
         const prev = JSON.stringify(dataForm)
         const next = JSON.stringify(newDataForm)
-        if (prev !== next){
+        if (prev !== next) {
             saveIfChanged('dataForm', newDataForm)
             setDataForm(newDataForm)
         }
@@ -279,13 +286,13 @@ export default function Formulario() {
     const handleCapture = async () => {
         if (captureRef.current) {
             try {
-                const { default: html2canvas } = await import('html2canvas')
+                const {default: html2canvas} = await import('html2canvas')
                 const canvas = await html2canvas(captureRef.current);
                 canvas.toBlob(async (blob) => {
                     if (blob) {
-                        if(isMobile){
+                        if (isMobile) {
                             if (navigator.share) {
-                                const file = new File([blob], "screenshot.png", { type: "image/png" });
+                                const file = new File([blob], "screenshot.png", {type: "image/png"});
                                 try {
                                     toast.success("Imagen lista para ser compartida");
                                     await navigator.share({
@@ -294,7 +301,8 @@ export default function Formulario() {
                                         text: "",
                                     });
                                     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                                } catch (error) {}
+                                } catch (error) {
+                                }
                             } else {
                                 toast.warning("La API de compartir no está soportada en este dispositivo.");
                                 const dataUrl = canvas.toDataURL("image/png");
@@ -303,9 +311,9 @@ export default function Formulario() {
                                 link.download = "screenshot.png";
                                 link.click();
                             }
-                        }else{
+                        } else {
                             try {
-                                const item = new ClipboardItem({ "image/png": blob });
+                                const item = new ClipboardItem({"image/png": blob});
                                 await navigator.clipboard.write([item]);
                                 toast.success("Imagen copiada al portapapeles");
                                 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -326,7 +334,7 @@ export default function Formulario() {
 
     return (
         <>
-            <ToastContainer />
+            <ToastContainer/>
             <main className={'card'}>
                 {/* Header with countdown and logout */}
                 <div className="header-bar">
@@ -364,7 +372,11 @@ export default function Formulario() {
                                     }}
                                 />
                             ) : (
-                                <span className="info-card-value">{formatToMoney(data.dolar)}</span>
+                                <span className="info-card-value"
+                                      style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+                                    {image && (<img src={`https://pbit.bancodebogota.com${image}`} alt="indicador"
+                                                    style={{width: 10, height: 10}}/>)}
+                                    {formatToMoney(data.dolar)}</span>
                             )}
                         </div>
                         <div className="info-card-right">

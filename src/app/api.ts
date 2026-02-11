@@ -14,7 +14,7 @@ function getAuthHeaders(): HeadersInit {
 
 const api = {
     bancodebogota: async (signal?: AbortSignal) => {
-        const result = {mid:0}
+        const result = {mid:0, image: null as string | null};
        try {
            const response = await fetch('/api/getUsd', {
                signal,
@@ -23,6 +23,7 @@ const api = {
            const data = await response.json();
            if(data.usd){
                result.mid = Number(data.usd[0].split(':')[1].trim().replaceAll(',','.'))
+               result.image = data?.image || null
            }else{
                result.mid = 0
            }
@@ -33,7 +34,7 @@ const api = {
        }
     },
     goldPrice: async (signal?: AbortSignal)=>{
-        const res = {mid:0};
+        const res = {mid:0, image: null as string | null};
      try {
          const response = await axios.get(`https://data-asg.goldprice.org/dbXRates/COP`, { timeout: 10000, signal });
          const result = response.data;
