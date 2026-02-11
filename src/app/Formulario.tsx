@@ -258,7 +258,6 @@ export default function Formulario() {
 
         const multi = (nowData.gold*nowData.dolar)/fix
         for (let i = 0; i <= newDataForm.length-1; i++) {
-            console.log(Number(String(newDataForm[i].C).replace('%','')))
             newDataForm[i].B = multi*Number(String(newDataForm[i].C).replace('%',''))
         }
         const prev = JSON.stringify(dataForm)
