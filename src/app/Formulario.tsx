@@ -145,7 +145,6 @@ export default function Formulario() {
         const nowData = data
         let res = await api.goldPriceScraping()
         nowData.gold = res.mid
-        console.log(res)
         nowData.gold_date = res.time
         nowData.gold_time = new Date().toLocaleTimeString()
 
@@ -156,6 +155,8 @@ export default function Formulario() {
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-expect-error
             setImage(res?.image.replace('..', ''))
+        }else{
+            setImage(null)
         }
         if (res.mid === 0) {
             if (typeof window !== "undefined") {
@@ -200,6 +201,14 @@ export default function Formulario() {
                     dolar_date: banco.time,
                     dolar_time: new Date().toLocaleTimeString(),
                 } as DataType
+
+                if (banco.image){
+                    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                    // @ts-expect-error
+                    setImage(banco?.image.replace('..', ''))
+                }else {
+                    setImage(null)
+                }
 
                 // recompute prom based on dolar result present or previous
                 const after = JSON.stringify(nowData)
