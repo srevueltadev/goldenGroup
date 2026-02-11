@@ -26,8 +26,7 @@ export interface FormType {
 export interface DataType {
     gold: number;
     gold_time?: string;
-    gold_date?: string;
-    gold_prom: number;
+    gold_date: string;
     dolar: number;
     dolar_time?: string;
 }
