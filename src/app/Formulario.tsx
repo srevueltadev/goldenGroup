@@ -4,23 +4,17 @@ import api from "@/app/api";
 
 import {toast, ToastContainer} from "react-toastify";
 
-function formatToMoney(value: number | string, locale = 'en-US', currency = 'USD') {
-    const formatter = new Intl.NumberFormat(locale, {
-        style: 'currency',
-        currency: currency,
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-        useGrouping: true,
-    });
+function formatToMoney(value: number | string) {
     if (isNaN(Number(value)) || value === "") {
         return value
     }
-    return formatter.format(Number(value));
+    const numValue = Number(value);
+    return numValue.toLocaleString('es-CO');
 }
 
 export interface FormType{
     A: string | number;
-    B: number;
+    B: number | string;
     C: string | number;
     formatEn?: boolean;
     goldStyle?: object;
@@ -163,9 +157,6 @@ export default function Formulario() {
                 localStorage.setItem('dolar',String(res.mid))
             }
         }
-
-        //Sacar promedios con el fix
-        nowData.gold_prom = ((nowData.gold*(res.mid)*(fix)))
         saveIfChanged('data', nowData)
         calculos(nowData)
     }, []);
@@ -197,9 +188,6 @@ export default function Formulario() {
                 } as DataType
 
                 // recompute prom based on dolar result present or previous
-                const dolarToUse = banco.mid || data.dolar
-                nowData.gold_prom = (nowData.gold * (dolarToUse) * (fix))
-
                 const after = JSON.stringify(nowData)
                 const changed = before !== after
                 if (changed) {
@@ -265,8 +253,10 @@ export default function Formulario() {
         //porcentajes
 
         const multi = (nowData.gold*nowData.dolar)/fix
+
         for (let i = 0; i <= newDataForm.length-1; i++) {
-            newDataForm[i].B = multi*Number(String(newDataForm[i].C).replace('%',''))
+            const porcentaje = Number(String(newDataForm[i].C).replace('%',''))
+            newDataForm[i].B = String(Math.floor(multi * porcentaje / 100)).substring(0, 6)
         }
         const prev = JSON.stringify(dataForm)
         const next = JSON.stringify(newDataForm)
