@@ -53,6 +53,24 @@ const api = {
          console.error(e)
          return res;
      }
+    },
+    goldPriceScraping: async (signal?: AbortSignal) => {
+        const result = { mid: 0 , image: null as string | null, time: ""};
+        try {
+            const response = await fetch('/api/getGold', {
+                signal,
+                headers: getAuthHeaders()
+            });
+            const data = await response.json();
+            if (data.price) {
+                result.mid = data.price.replaceAll(',','');
+                result.time = data.date;
+            }
+            return result;
+        } catch (e) {
+            console.error(e);
+            return result;
+        }
     }
 }
 
