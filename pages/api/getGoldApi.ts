@@ -23,6 +23,14 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             timeout: 15000
         });
 
+        // Set gold ticker default in browser localStorage
+        await page.evaluate(() => {
+            localStorage.setItem('gold_ticker_default', JSON.stringify({
+                currency_ticker: 'COP',
+                weight_ticker: 'k'
+            }));
+        });
+
         // Esperar a que cargue el contenido dinámico
         await page.waitForSelector('#priceofgold', { timeout: 10000 }).catch(() => null);
         await page.waitForTimeout(2000); // Esperar un poco para datos dinámicos

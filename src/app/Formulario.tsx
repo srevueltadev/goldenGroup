@@ -142,7 +142,7 @@ export default function Formulario() {
 
     const init = useCallback(async () => {
         const nowData = data
-        let res = await api.goldPrice()
+        let res = await api.goldPriceScraping()
         nowData.gold = res.mid
         nowData.gold_date = res.time
         nowData.gold_time = new Date().toLocaleTimeString()
@@ -187,7 +187,7 @@ export default function Formulario() {
             try {
                 const before = JSON.stringify(lastDataRef.current)
                 // pass signal to api
-                const gold = await api.goldPrice(ctrl.signal)
+                const gold = await api.goldPriceScraping(ctrl.signal)
                 const banco = await api.bancodebogota(ctrl.signal)
 
                 // Build nowData based on previous state to avoid stale
@@ -306,20 +306,22 @@ export default function Formulario() {
                 canvas.toBlob(async (blob) => {
                     if (blob) {
                         if (isMobile) {
-                            if (navigator.share) {
-                                const file = new File([blob], "screenshot.png", {type: "image/png"});
+                            const file = new File([blob], "screenshot.png", {type: "image/png"}) as File;
+                            const shareData = { files: [file], title: "Precio", text: "" };
+                            // Verificar si el navegador soporta compartir archivos
+                            if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
                                 try {
-                                    toast.success("Imagen lista para ser compartida");
-                                    await navigator.share({
-                                        files: [file],
-                                        title: "Precio",
-                                        text: "",
-                                    });
-                                    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                                    await navigator.share(shareData);
+                                    toast.success("Imagen compartida exitosamente");
                                 } catch (error) {
+                                    // El usuario canceló o hubo un error
+                                    if ((error as Error).name !== 'AbortError') {
+                                        toast.error("Error al compartir la imagen");
+                                    }
                                 }
                             } else {
-                                toast.warning("La API de compartir no está soportada en este dispositivo.");
+                                // Fallback: descargar la imagen
+                                toast.info("Descargando imagen...");
                                 const dataUrl = canvas.toDataURL("image/png");
                                 const link = document.createElement("a");
                                 link.href = dataUrl;
@@ -405,7 +407,7 @@ export default function Formulario() {
                     <div className="info-card gold">
                         <div className="info-card-left">
                             <span className="info-card-label">Gold Price</span>
-                            <span className="info-card-value">{formatToMoney(data.gold)}</span>
+                            <span className="info-card-value">{Math.floor(data.gold)}</span>
                         </div>
                         <div className="info-card-right">
                             <span className="info-card-time">{String(data.gold_time)}</span>
@@ -497,7 +499,7 @@ export default function Formulario() {
                                             row.C
                                         )}
                                     </div>
-                                    <div className="percentage-amount-b">{formatToMoney(row.B)}</div>
+                                    <div className="percentage-amount-b">{formatToMoney(Math.floor(Number(row.B) / 1000))}</div>
                                 </div>
                             ))}
                         </div>

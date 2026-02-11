@@ -26,6 +26,12 @@ export default function Page() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Set gold ticker default config
+    localStorage.setItem('gold_ticker_default', JSON.stringify({
+      currency_ticker: 'COP',
+      weight_ticker: 'k'
+    }));
+
     setAuthenticated(isAuthenticated());
     setLoading(false);
   }, []);

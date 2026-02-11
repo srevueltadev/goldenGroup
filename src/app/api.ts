@@ -1,4 +1,4 @@
-import axios from "axios";
+import axios, { RawAxiosRequestHeaders } from "axios";
 
 function getAuthToken(): string | null {
     if (typeof window !== 'undefined') {
@@ -8,6 +8,11 @@ function getAuthToken(): string | null {
 }
 
 function getAuthHeaders(): HeadersInit {
+    const token = getAuthToken();
+    return token ? { 'Authorization': `Bearer ${token}` } : {};
+}
+
+function getAxiosAuthHeaders(): RawAxiosRequestHeaders {
     const token = getAuthToken();
     return token ? { 'Authorization': `Bearer ${token}` } : {};
 }
@@ -41,7 +46,7 @@ const api = {
         const metalClose = "xauClose";
      try {
          //https://data-asg.goldprice.org/dbXRates/USD
-         const response = await axios.get(`/api/getGold`, { timeout: 10000, signal });
+         const response = await axios.get(`/api/getGold`, { timeout: 10000, signal, headers: getAxiosAuthHeaders() });
          const result = response.data;
          return {
              mid: result.items[0][metalPrice].toFixed(2),
@@ -57,7 +62,7 @@ const api = {
     goldPriceScraping: async (signal?: AbortSignal) => {
         const result = { mid: 0 , image: null as string | null, time: ""};
         try {
-            const response = await fetch('/api/getGold', {
+            const response = await fetch('/api/getGoldApi', {
                 signal,
                 headers: getAuthHeaders()
             });
