@@ -1,7 +1,6 @@
 'use client'
 import React, {useCallback, useEffect, useRef, useState} from "react";
 import api from "@/app/api";
-import {Col, Row} from "react-bootstrap";
 
 import {toast, ToastContainer} from "react-toastify";
 
@@ -30,61 +29,41 @@ export interface FormType{
     factorEditable?: boolean;
 }
 
-export interface DataType{
-    kitco: number;
-    kitco_time?: string;
-    kitco_prom: number;
-    other: number;
-    other_time?: string;
-    other_prom: number;
+export interface DataType {
+    gold: number;
+    gold_time?: string;
+    gold_prom: number;
     dolar: number;
     dolar_time?: string;
 }
 
-const bgBlue ={factorStyle:{backgroundColor: "#88a1c8",fontWeight: 'bold'}, goldStyle: {backgroundColor: "#88a1c8",fontWeight: 'bold'}}
+//const bgBlue ={factorStyle:{backgroundColor: "#88a1c8",fontWeight: 'bold'}, goldStyle: {backgroundColor: "#88a1c8",fontWeight: 'bold'}}
 
 const defaultForm = [
-    { A: "ONZA", B: 0, C: 0,goldStyle: {fontWeight: 'bold'},entidadStyle:{fontWeight: 'bold'} },
-    {
-        A: "USD", B: 0, C: 0, entidadStyle: {color: "red",fontWeight: 'bold'},goldStyle: {color: "red",fontWeight: 'bold'}},
-    {A: "Precio real", B: 0, C: 0,entidadStyle:{fontWeight: 'bold'}, goldStyle: {color: "red",fontWeight: 'bold'}},
-    {
-        A: "GOLD",
-        B: 0,
-        C: 0,
-        entidadStyle:{fontWeight: 'bold'},
-        goldStyle: {backgroundColor: "yellow",color:'red',fontWeight: 'bold'},
-        factorStyle: {color: "red"}
-    },
-    { A: "", B: 0, C: ""},
-    { A: "", B: 0, C: ""},
-    { A: "", B: 0, C: "88.0%"},
-    { A: "", B: 0, C: "88.5%"},
-    { A: "", B: 0, C: "89.0%"},
     { A: "", B: 0, C: "89.5%"},
     { A: "", B: 0, C: "90.0%"},
     { A: "", B: 0, C: "90.5%"},
     { A: "", B: 0, C: "91.0%"},
     { A: "", B: 0, C: "91.5%"},
+    { A: "", B: 0, C: "91.6%"},
+    { A: "", B: 0, C: "91.7%"},
+    { A: "", B: 0, C: "91.8%"},
+    { A: "", B: 0, C: "91.9%"},
     { A: "", B: 0, C: "92.0%"},
-    { A: "", B: 0, C: "92.5%"},
-    { A: "", B: 0, C: "93.0%",...bgBlue},
-    //{ A: "", B: 0, C: "93.5%", ...bgBlue},//formatEn:true,
-    { A: "", B: 0, C: "",factorEditable:true},//, goldStyle: {backgroundColor: "#88a1c8"}},
+    { A: "", B: 0, C: "97.8%"},
+    { A: "", B: 0, C: "98.0%"},
+    { A: "", B: 0, C: "98.3%"},
+    { A: "", B: 0, C: "",factorEditable:true},
 ]
 
 export default function Formulario() {
     const [isError, setIsError] = useState(false)
-    const [errorKitko, setErrorKitko] = useState(false)
     let defaultwindow = false
     const dateNow = new Date().toLocaleTimeString()
     let DataDefault = {
-        kitco: 0,
-        kitco_prom: 0,
-        kitco_time: dateNow,
-        other: 0,
-        other_prom: 0,
-        other_time: dateNow,
+        gold: 0,
+        gold_prom: 0,
+        gold_time: dateNow,
         dolar: 0,
         dolar_time: dateNow
     }
@@ -93,18 +72,15 @@ export default function Formulario() {
         if(localStorage.getItem('data')){
             DataDefault = JSON.parse(localStorage.getItem('data') || JSON.stringify(DataDefault))
         }
-        if(localStorage.getItem('dataForm')){
-            //defaultForm = Object.assign(defaultForm,JSON.parse(localStorage.getItem('dataForm') || JSON.stringify(defaultForm)))
-        }
     }
     const [isMobile, setIsMobile] = useState(defaultwindow);
     const [timeScrenshot, setTimeScrenshot] = useState('')
     const [data, setData] = useState<DataType>(DataDefault)
+    const [countdown, setCountdown] = useState(0)
 
-    const [fix] = useState(31.10347)
+    const [fix] = useState(31.1034768)
     const [dataForm,setDataForm] = useState<FormType[]>(defaultForm);
     const defaultValue = "4333.00"
-    const defaultValueKitco= "3310.08"
 
     useEffect(() => {
         init().then(() => {});
@@ -123,7 +99,7 @@ export default function Formulario() {
         const originalTitle = document.title;
 
         const handleBlur = () => {
-            document.title = "¡Vuelve pronto! - Precios de Oro";
+            document.title = "¡Vuelve pronto!";
         };
 
         const handleFocus = () => {
@@ -146,6 +122,7 @@ export default function Formulario() {
     const intervalRef = useRef(baseInterval)
     const lastDataRef = useRef<DataType | null>(null)
     const lastSaveRef = useRef(0)
+    const nextExecutionRef = useRef(Date.now() + baseInterval)
 
     const saveIfChanged = (key: string, value: unknown, throttleMs = 2000) => {
         if (typeof window === 'undefined') return
@@ -160,26 +137,9 @@ export default function Formulario() {
 
     const init = useCallback(async () => {
         const nowData = data
-
-        let res = await api.kitco()
-        if(res.mid === 0){
-            nowData.kitco_time = new Date().toLocaleTimeString()
-            if (typeof window !== "undefined") {
-                nowData.kitco = Number(localStorage.getItem('kitco') || defaultValueKitco)
-            }
-            setErrorKitko(true)
-        }else{
-            nowData.kitco = res.mid-2
-            nowData.kitco_time = new Date().toLocaleTimeString()
-            setErrorKitko(false)
-            if (typeof window !== "undefined") {
-                localStorage.setItem('kitco',String(res.mid))
-            }
-        }
-
-        res = await api.other()
-        nowData.other = (res.mid)
-        nowData.other_time = new Date().toLocaleTimeString()
+        let res = await api.goldPrice()
+        nowData.gold = (res.mid)
+        nowData.gold_time = new Date().toLocaleTimeString()
 
         res = await api.bancodebogota()
         nowData.dolar_time = new Date().toLocaleTimeString()
@@ -197,8 +157,7 @@ export default function Formulario() {
         }
 
         //Sacar promedios con el fix
-        nowData.other_prom = ((nowData.other*(res.mid)*(fix)))
-        nowData.kitco_prom = (((errorKitko?(nowData.kitco):nowData.kitco) *(res.mid)*(fix)))
+        nowData.gold_prom = ((nowData.gold*(res.mid)*(fix)))
         saveIfChanged('data', nowData)
         calculos(nowData)
     }, []);
@@ -217,27 +176,21 @@ export default function Formulario() {
             try {
                 const before = JSON.stringify(lastDataRef.current)
                 // pass signal to api
-                const kitco = await api.kitco(ctrl.signal)
-                const other = await api.other(ctrl.signal)
+                const gold = await api.goldPrice(ctrl.signal)
                 const banco = await api.bancodebogota(ctrl.signal)
 
                 // Build nowData based on previous state to avoid stale
                 const nowData = {
                     ...data,
-                    kitco: kitco.mid ? kitco.mid - 2 : data.kitco,
-                    kitco_time: new Date().toLocaleTimeString(),
-                    other: other.mid || data.other,
-                    other_time: new Date().toLocaleTimeString(),
+                    gold: gold.mid || data.gold,
+                    gold_time: new Date().toLocaleTimeString(),
                     dolar: banco.mid || data.dolar,
                     dolar_time: new Date().toLocaleTimeString(),
                 } as DataType
 
                 // recompute prom based on dolar result present or previous
                 const dolarToUse = banco.mid || data.dolar
-                const kitcoVal = kitco.mid ? kitco.mid : nowData.kitco + 2
-                const kVal = (errorKitko ? kitcoVal - 2 : kitcoVal)
-                nowData.other_prom = (nowData.other * (dolarToUse) * (fix))
-                nowData.kitco_prom = (kVal * (dolarToUse) * (fix))
+                nowData.gold_prom = (nowData.gold * (dolarToUse) * (fix))
 
                 const after = JSON.stringify(nowData)
                 const changed = before !== after
@@ -258,6 +211,7 @@ export default function Formulario() {
                 }
             } finally {
                 if (!stopped && document.visibilityState === 'visible') {
+                    nextExecutionRef.current = Date.now() + intervalRef.current
                     handle = window.setTimeout(loop, intervalRef.current)
                 }
             }
@@ -285,50 +239,28 @@ export default function Formulario() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
+    // Countdown timer effect
+    useEffect(() => {
+        const countdownInterval = setInterval(() => {
+            const remaining = Math.max(0, nextExecutionRef.current - Date.now())
+            setCountdown(Math.ceil(remaining / 1000))
+        }, 1000)
+
+        return () => clearInterval(countdownInterval)
+    }, [])
+
     const calculos = (nowData:DataType) =>{
         setData({...nowData})
 
         // clone dataForm to avoid in-place mutation
         const newDataForm = dataForm.map((row) => ({...row}))
-
-        newDataForm[0].B = nowData.kitco;
-
-        newDataForm[0].C = newDataForm[0].B*(fix);
-
-        newDataForm[1].B = nowData.dolar;
-        newDataForm[1].C = (newDataForm[1].B)+10;
-
-        newDataForm[3].B = Number(nowData.other)//Number(parseFloat(String(data.other_prom)).toFixed(2));
-        newDataForm[3].C = nowData.other_prom
-
-        newDataForm[4].A = String(fix);//Fix
-        // A6 Si se cambia cambiar mas abajo
-        newDataForm[5].A = String(newDataForm[0].B*nowData.dolar); //calculo 2
-
-        //Esto lo movi
-        //newDataForm[10].A = formatToMoney((newDataForm[3].B*94.0)/100)
-
-        //precio real
-        newDataForm[2].B = Number(newDataForm[5].A)/Number(newDataForm[4].A) * 1000// resultado
-        // C0 * C1 / A4
-        //newDataForm[2].C = (Number(newDataForm[0].C)*Number(newDataForm[1].C))/Number(fix) // resultado
-        //newDataForm[2].C = (Number(newDataForm[0].C)*Number(newDataForm[1].C))/Number(fix) // resultado
-
-
-        //resta
-        newDataForm[3].C = newDataForm[2].B-newDataForm[3].B;// resultado
-
         //porcentajes
-        const gold =  newDataForm[2].B
-        const goldDirect =  newDataForm[3].B
-        for (let i = 6; i <= newDataForm.length-1; i++) {
-            newDataForm[i].B = gold*(Number(String(newDataForm[i].C).replace('%','')) / 100)
-            newDataForm[i].A = formatToMoney(goldDirect*(Number(String(newDataForm[i].C).replace('%','')) / 100))
+
+        const multi = (nowData.gold*nowData.dolar)/fix
+        for (let i = 0; i <= newDataForm.length-1; i++) {
+            console.log(Number(String(newDataForm[i].C).replace('%','')))
+            newDataForm[i].B = multi*Number(String(newDataForm[i].C).replace('%',''))
         }
-
-        //Esto lo movi
-        //newDataForm[7].A = formatToMoney(newDataForm[6].B-newDataForm[3].C) //calculo 3
-
         const prev = JSON.stringify(dataForm)
         const next = JSON.stringify(newDataForm)
         if (prev !== next){
@@ -399,167 +331,160 @@ export default function Formulario() {
         <>
             <ToastContainer />
             <main className={'card'}>
-                <Row>
-                    <Col>
-                        <div className={'table-container'} key={data.other}>
-                            <table>
-                                <thead>
-                                <tr>
-                                    <th>Entidad</th>
-                                    <th>Gold / Dolar</th>
-                                    <th>Hora</th>
-                                    <th></th>
-                                </tr>
-                                </thead>
-                                <tbody>
-                                {errorKitko ? (
-                                    <tr>
-                                        <td>Ingrese Kitco</td>
-                                        <td>
-                                            <input
-                                                type={"number"}
-                                                className={'form-control'}
-                                                name={'kitco'}
-                                                placeholder={"kitco"}
-                                                autoComplete={'off'}
-                                                value={data.kitco}
-                                                onChange={(e) => {
-                                                    const nowData = {...data}
+                {/* Countdown Timer */}
+                <div className="countdown-timer">
+                    Próxima actualización en: <strong>{countdown}s</strong>
+                </div>
+                {/* Info Cards Section */}
+                <div className="info-cards-container">
 
-                                                    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                                                    // @ts-expect-error
-                                                    nowData.kitco = Number(e.target.value) || null;
-                                                    setData({...nowData})
-                                                    calculos(nowData)
-                                                    if (typeof window !== "undefined") {
-                                                        localStorage.setItem('kitco', String(e.target.value || null))
-                                                    }
-                                                }}
-                                            />
-                                        </td>
-                                        <td>{String(data.kitco_time?.split(" ")[0])}</td>
-                                        <td>{formatToMoney(data.kitco_prom)}</td>
-                                    </tr>
-                                    ):(
-                                        <tr>
-                                            <td className={'justify-content-between'}>Kitco</td>
-                                            <td>{formatToMoney(data.kitco)}</td>
-                                            <td>{String(data.kitco_time?.split(" ")[0])}</td>
-                                            <td>{formatToMoney(data.kitco_prom)}</td>
-                                        </tr>
-                                )}
-                                <tr>
-                                    <td>Gold Price</td>
-                                    <td>{formatToMoney(data.other)}</td>
-                                    <td>{String(data.other_time?.split(" ")[0])}</td>
-                                    <td>{formatToMoney(data.other_prom)}</td>
-                                </tr>
-                                {/*<tr>*/}
-                                {/*    <td>Tradingview</td>*/}
-                                {/*    <td></td>*/}
-                                {/*    <td></td>*/}
-                                {/*    <td></td>*/}
-                                {/*</tr>*/}
-                                {isError ? (
-                                    <tr>
-                                        <td>Ingrese dolar ⬇</td>
-                                        <td>
+                    {/* Dolar Card */}
+                    <div className="info-card dolar">
+                        <div className="info-card-left">
+                            <span className="info-card-label">
+                                {isError ? "Ingrese dolar ⬇" : "Banco de Bogotá"}
+                            </span>
+                            {isError ? (
+                                <input
+                                    type="number"
+                                    name="bancodebogota"
+                                    placeholder="4333"
+                                    autoComplete="off"
+                                    value={data.dolar}
+                                    onChange={(e) => {
+                                        const nowData = {...data}
+                                        nowData.dolar = Number(e.target.value || 0)
+                                        setData({...nowData})
+                                        calculos(nowData)
+                                        if (typeof window !== "undefined") {
+                                            localStorage.setItem('dolar', String(e.target.value || defaultValue))
+                                        }
+                                    }}
+                                />
+                            ) : (
+                                <span className="info-card-value">{formatToMoney(data.dolar)}</span>
+                            )}
+                        </div>
+                        <div className="info-card-right">
+                            <span className="info-card-time">⏰ {data.dolar_time?.split(" ")[0]}</span>
+                            {/*<span className="info-card-extra">*/}
+                            {/*    {isError ? formatToMoney(data.dolar) : "Dolar compra"}*/}
+                            {/*</span>*/}
+                        </div>
+                    </div>
+                    {/* Gold Price Card */}
+                    <div className="info-card gold">
+                        <div className="info-card-left">
+                            <span className="info-card-label">Gold Price</span>
+                            <span className="info-card-value">{formatToMoney(data.gold)}</span>
+                        </div>
+                        <div className="info-card-right">
+                            <span className="info-card-time">⏰ {String(data.gold_time?.split(" ")[0])}</span>
+                            {/*<span className="info-card-extra">{formatToMoney(data.gold_prom)}</span>*/}
+                        </div>
+                    </div>
+
+
+                </div>
+
+                {/* iframe */}
+                <div className="iframe-container">
+                    <iframe
+                        id="myiframe"
+                        style={{overflow: 'hidden', pointerEvents: 'none', width: '100%', border: 'none'}}
+                        scrolling="no"
+                        rel="preconnect"
+                        src="https://pbit.bancodebogota.com/Indicadores/Tirilla.aspx"
+                        height={50}
+                    />
+                </div>
+
+                {/* Screenshot Container */}
+                <div ref={captureRef} className="screenshot-container">
+                    {timeScrenshot !== "" && (
+                        <div className="screenshot-time">
+                            📅 {timeScrenshot}
+                        </div>
+                    )}
+
+                    {/* Main Price Cards */}
+                    {/*<div className="price-grid">*/}
+                    {/*    /!* ONZA *!/*/}
+                    {/*    <div className="price-item highlight">*/}
+                    {/*        <div className="price-item-left">*/}
+                    {/*            <span className="price-label">Índice 1</span>*/}
+                    {/*            <span className="price-name">ONZA</span>*/}
+                    {/*        </div>*/}
+                    {/*        <div>*/}
+                    {/*            <span className="price-value">{formatToMoney(dataForm[0]?.B || 0)}</span>*/}
+                    {/*            <div style={{fontSize: '0.75rem', color: '#888'}}>{formatToMoney(dataForm[0]?.C || 0)}</div>*/}
+                    {/*        </div>*/}
+                    {/*    </div>*/}
+
+                    {/*    /!* Fix value *!/*/}
+                    {/*    <div className="price-item">*/}
+                    {/*        <div className="price-item-left">*/}
+                    {/*            <span className="price-label">Índice 1</span>*/}
+                    {/*            <span className="price-name">Factor Fix</span>*/}
+                    {/*        </div>*/}
+                    {/*        <span className="price-value">{dataForm[4]?.A || fix}</span>*/}
+                    {/*    </div>*/}
+                    {/*</div>*/}
+
+                    {/* Percentage Section */}
+                    <div className="percentage-section">
+                        <h3 className="percentage-title">📊 Porcentajes</h3>
+                        <div className="percentage-grid">
+                            {dataForm.map((row, index) => (
+                                <div
+                                    key={index}
+                                    className={`percentage-card`}
+                                >
+                                    <div className="percentage-label">
+                                        {row.factorEditable ? (
                                             <input
-                                                type={"number"}
-                                                className={'form-control'}
-                                                name={'bancodebogota'}
-                                                placeholder={"4333"}
-                                                autoComplete={'off'}
-                                                value={data.dolar}
+                                                type="number"
+                                                value={row.C}
+                                                autoComplete="off"
+                                                placeholder="0.0%"
                                                 onChange={(e) => {
-                                                    const nowData = {...data}
-                                                    nowData.dolar = Number(e.target.value || 0)
-                                                    setData({...nowData})
-                                                    calculos(nowData)
-                                                    if (typeof window !== "undefined") {
-                                                        localStorage.setItem('dolar', String(e.target.value || defaultValue))
-                                                    }
+                                                    dataForm[index].C = e.target.value
+                                                    setDataForm([...dataForm])
+                                                    calculos(data)
+                                                }}
+                                                style={{
+                                                    width: '70px',
+                                                    textAlign: 'center',
+                                                    border: '1px solid #ddd',
+                                                    borderRadius: '4px',
+                                                    padding: '4px',
+                                                    fontSize: '0.9rem'
                                                 }}
                                             />
-                                        </td>
-                                        <td>{data.dolar_time?.split(" ")[0]}</td>
-                                        <td>{formatToMoney(data.dolar)}</td>
-                                    </tr>
-                                ) : (
-                                    <tr>
-                                        <td>Banco de bogota</td>
-                                        <td>{formatToMoney(data.dolar)}</td>
-                                        <td>{String(data.dolar_time?.split(" ")[0])}</td>
-                                        <td>{'Dolar compra'}</td>
-                                    </tr>
-                                )}
-                                </tbody>
-                            </table>
+                                        ) : (
+                                            row.C
+                                        )}
+                                    </div>
+                                    <div className="percentage-amount-b">{formatToMoney(row.B)}</div>
+                                </div>
+                            ))}
                         </div>
-                        <iframe id={'myiframe'}
-                                style={{overflow: 'hidden', pointerEvents: 'none', width: '100%', border: 'none'}}
-                                scrolling="no"
-                                rel="preconnect"
-                                src="https://pbit.bancodebogota.com/Indicadores/Tirilla.aspx" height={50}></iframe>
-                    </Col>
-                    <Col>
-                        <div ref={captureRef} style={{display: 'flex',flexDirection: 'column'}}>
-                            {timeScrenshot !== "" && (
-                                <span style={{width:'100%',textAlign:'center'}}>
-                                    {timeScrenshot}
-                                </span>)
-                            }
-                            <div className={'table-container'} >
-                                <table>
-                                    <thead>
-                                    <tr>
-                                        <th>#</th>
-                                        <th>A</th>
-                                        <th>B</th>
-                                        <th>C</th>
-                                    </tr>
-                                    </thead>
-                                    <tbody>
-                                    {dataForm.map((row, index) => (
-                                        <tr key={index}>
-                                            <td>{index}</td>
-                                            <td style={row.entidadStyle}>{row.formatEn ? formatToMoney(row.A) : row.A}</td>
-                                            <td style={row.goldStyle}>{formatToMoney(row.B)}</td>
-                                            <td style={row.factorStyle}>
-                                                {row.factorEditable ? (
-                                                    <input type="number"
-                                                           value={row.C}
-                                                           className={'form-control'}
-                                                           autoComplete={'off'}
-                                                           placeholder={"0.0%"}
-                                                           onChange={(e) => {
-                                                               dataForm[index].C = e.target.value
-                                                               setDataForm([...dataForm])
-                                                               calculos(data)
-                                                           }}
-                                                    />
-                                                ) : formatToMoney(row.C)}</td>
-                                        </tr>
-                                    ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                        <div className={'isMovile'} >
-                            <button onClick={
-                                () => {
-                                    setTimeScrenshot(`${new Date().toLocaleDateString()} - ${new Date().toLocaleTimeString()} `)
-                                    setTimeout(() => {
-                                        handleCapture().then()
-                                    }, 500)
-                                }
-                            }>
-                                {isMobile?"Compartir tabla":"Copiar pantallazo al portapapeles"}
-                            </button>
-                        </div>
-                    </Col>
-                </Row>
-                <span>v2.1</span>
+                    </div>
+                </div>
+
+                {/* Action Button */}
+                <div className="action-button">
+                    <button onClick={() => {
+                        setTimeScrenshot(`${new Date().toLocaleDateString()} - ${new Date().toLocaleTimeString()} `)
+                        setTimeout(() => {
+                            handleCapture().then()
+                        }, 500)
+                    }}>
+                        {isMobile ? "📤 Compartir tabla" : "📋 Copiar pantallazo al portapapeles"}
+                    </button>
+                </div>
+
+                <div className="version-tag">v1.0</div>
             </main>
         </>
     );
