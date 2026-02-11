@@ -82,6 +82,14 @@ export default function Formulario() {
     const [dataForm,setDataForm] = useState<FormType[]>(defaultForm);
     const defaultValue = "4333.00"
 
+    const handleLogout = () => {
+        if (window.confirm('¿Estás seguro que deseas cerrar sesión?')) {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('authExpiry');
+            window.location.reload();
+        }
+    };
+
     useEffect(() => {
         init().then(() => {});
         const metaViewport = document.createElement('meta');
@@ -330,9 +338,14 @@ export default function Formulario() {
         <>
             <ToastContainer />
             <main className={'card'}>
-                {/* Countdown Timer */}
-                <div className="countdown-timer">
-                    Próxima actualización en: <strong>{countdown}s</strong>
+                {/* Header with countdown and logout */}
+                <div className="header-bar">
+                    <div className="countdown-timer">
+                        Próxima actualización en: <strong>{countdown}s</strong>
+                    </div>
+                    <button className="logout-button" onClick={handleLogout}>
+                        Salir
+                    </button>
                 </div>
                 {/* Info Cards Section */}
                 <div className="info-cards-container">
