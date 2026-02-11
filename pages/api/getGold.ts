@@ -32,7 +32,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             return res.status(200).json(cache.data);
         }
 
-        const response = await fetch('https://data-asg.goldprice.org/dbXRates/USD', {
+        const response = await fetch('https://data-asg.goldprice.org/dbXRates/COP', {
             method: 'GET',
             headers: {
                 'accept': '*/*',

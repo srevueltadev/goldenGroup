@@ -187,7 +187,7 @@ export default function Formulario() {
             try {
                 const before = JSON.stringify(lastDataRef.current)
                 // pass signal to api
-                const gold = await api.goldPriceScraping(ctrl.signal)
+                const gold = await api.goldPrice(ctrl.signal)
                 const banco = await api.bancodebogota(ctrl.signal)
 
                 // Build nowData based on previous state to avoid stale
