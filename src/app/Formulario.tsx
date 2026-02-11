@@ -88,8 +88,7 @@ export default function Formulario() {
     };
 
     useEffect(() => {
-        init().then(() => {
-        });
+        init()
         const metaViewport = document.createElement('meta');
         metaViewport.name = 'viewport';
         metaViewport.content = 'width=device-width, initial-scale=1.0, user-scalable=no';
@@ -143,7 +142,7 @@ export default function Formulario() {
 
     const init = useCallback(async () => {
         const nowData = data
-        let res = await api.goldPriceScraping()
+        let res = await api.goldPrice()
         nowData.gold = res.mid
         nowData.gold_date = res.time
         nowData.gold_time = new Date().toLocaleTimeString()

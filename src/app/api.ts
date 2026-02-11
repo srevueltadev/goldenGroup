@@ -40,9 +40,9 @@ const api = {
         const metalChange = "chgXau";
         const metalClose = "xauClose";
      try {
-         const response = await axios.get(`https://data-asg.goldprice.org/dbXRates/USD`, { timeout: 10000, signal });
+         //https://data-asg.goldprice.org/dbXRates/USD
+         const response = await axios.get(`/api/getGold`, { timeout: 10000, signal });
          const result = response.data;
-         // res.mid = Number((result.items[0]['xauPrice']* 32.1507466).toFixed(2))
          return {
              mid: result.items[0][metalPrice].toFixed(2),
              val: result.items[0][metalChange].toFixed(2),

@@ -1,8 +1,25 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { chromium } from 'playwright';
 import { withAuth } from './middleware';
 
-let cache: { price: string | null; date: string | null; ts: number } | null = null;
+interface GoldPriceData {
+    items: Array<{
+        curr: string;
+        xauPrice: number;
+        xagPrice: number;
+        chgXau: number;
+        chgXag: number;
+        pcXau: number;
+        pcXag: number;
+        xauClose: number;
+        xagClose: number;
+    }>;
+    ts: number;
+    tsj: number;
+    date: string;
+    [key: string]: unknown;
+}
+
+let cache: { data: GoldPriceData; ts: number } | null = null;
 const TTL = 60_000;
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -12,44 +29,41 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     try {
         if (cache && Date.now() - cache.ts < TTL) {
             res.setHeader('Cache-Control', 'public, max-age=30, s-maxage=60, stale-while-revalidate=300');
-            return res.status(200).json({ price: cache.price, date: cache.date });
+            return res.status(200).json(cache.data);
         }
 
-        const browser = await chromium.launch({ headless: true });
-        const page = await browser.newPage();
-
-        await page.goto('https://goldprice.org/', {
-            waitUntil: 'domcontentloaded',
-            timeout: 15000
+        const response = await fetch('https://data-asg.goldprice.org/dbXRates/USD', {
+            method: 'GET',
+            headers: {
+                'accept': '*/*',
+                'accept-language': 'en-US,en;q=0.9,es;q=0.8',
+                'origin': 'https://goldprice.org',
+                'referer': 'https://goldprice.org/',
+                'sec-ch-ua': '"Not(A:Brand";v="8", "Chromium";v="144", "Google Chrome";v="144"',
+                'sec-ch-ua-mobile': '?0',
+                'sec-ch-ua-platform': '"macOS"',
+                'sec-fetch-dest': 'empty',
+                'sec-fetch-mode': 'cors',
+                'sec-fetch-site': 'same-site',
+                'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36'
+            }
         });
 
-        // Esperar a que cargue el contenido dinámico
-        await page.waitForSelector('#priceofgold', { timeout: 10000 }).catch(() => null);
-        await page.waitForTimeout(2000); // Esperar un poco para datos dinámicos
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
 
-        // Extraer precio del oro: #priceofgold > div > div > table > tbody > tr:nth-child(1) > td:nth-child(2)
-        const price = await page.$eval(
-            '#priceofgold > div > div > table > tbody > tr:nth-child(1) > td:nth-child(2)',
-            (el) => el.textContent?.trim() || null
-        ).catch(() => null);
+        const data: GoldPriceData = await response.json();
 
-        // Extraer fecha: #gpxTickTab_date
-        const date = await page.$eval(
-            '#gpxTickTab_date',
-            (el) => el.textContent?.trim() || null
-        ).catch(() => null);
-
-        await browser.close();
-
-        cache = { price, date, ts: Date.now() };
+        cache = { data, ts: Date.now() };
         res.setHeader('Cache-Control', 'public, max-age=30, s-maxage=60, stale-while-revalidate=300');
-        return res.status(200).json({ price, date });
+        return res.status(200).json(data);
 
     } catch (error) {
         console.error('Error fetching Gold price:', error);
         if (cache) {
             res.setHeader('Cache-Control', 'public, max-age=30, s-maxage=60, stale-while-revalidate=300');
-            return res.status(200).json({ price: cache.price, date: cache.date });
+            return res.status(200).json(cache.data);
         }
         return res.status(500).json({ error: 'Internal Server Error' });
     }
