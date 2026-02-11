@@ -29,6 +29,7 @@ export interface DataType {
     gold_date: string;
     dolar: number;
     dolar_time?: string;
+    dolar_date: string;
 }
 
 //const bgBlue ={factorStyle:{backgroundColor: "#88a1c8",fontWeight: 'bold'}, goldStyle: {backgroundColor: "#88a1c8",fontWeight: 'bold'}}
@@ -59,7 +60,8 @@ export default function Formulario() {
         gold_time: dateNow,
         gold_date: "",
         dolar: 0,
-        dolar_time: dateNow
+        dolar_time: dateNow,
+        dolar_date: ""
     }
     if (typeof window !== "undefined") {
         defaultwindow = window.innerWidth <= 468
@@ -149,6 +151,7 @@ export default function Formulario() {
 
         res = await api.bancodebogota()
         nowData.dolar_time = new Date().toLocaleTimeString()
+        nowData.dolar_date = res.time
         if (res.image) {
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-expect-error
@@ -194,6 +197,7 @@ export default function Formulario() {
                     gold_date: gold.time,
                     gold_time: new Date().toLocaleTimeString(),
                     dolar: banco.mid || data.dolar,
+                    dolar_date: banco.time,
                     dolar_time: new Date().toLocaleTimeString(),
                 } as DataType
 
@@ -385,7 +389,7 @@ export default function Formulario() {
                         <div className="info-card-right">
                             <span className="info-card-time">{data.dolar_time}</span>
                             <span className="info-card-extra">
-
+                                {`Banco de bogota: ${data.dolar_date}`}
                             </span>
                         </div>
                     </div>
@@ -408,16 +412,16 @@ export default function Formulario() {
                 </div>
 
                 {/* iframe */}
-                <div className="iframe-container">
-                    <iframe
-                        id="myiframe"
-                        style={{overflow: 'hidden', pointerEvents: 'none', width: '100%', border: 'none'}}
-                        scrolling="no"
-                        rel="preconnect"
-                        src="https://pbit.bancodebogota.com/Indicadores/Tirilla.aspx"
-                        height={50}
-                    />
-                </div>
+                {/*<div className="iframe-container">*/}
+                {/*    <iframe*/}
+                {/*        id="myiframe"*/}
+                {/*        style={{overflow: 'hidden', pointerEvents: 'none', width: '100%', border: 'none'}}*/}
+                {/*        scrolling="no"*/}
+                {/*        rel="preconnect"*/}
+                {/*        src="https://pbit.bancodebogota.com/Indicadores/Tirilla.aspx"*/}
+                {/*        height={50}*/}
+                {/*    />*/}
+                {/*</div>*/}
 
                 {/* Screenshot Container */}
                 <div ref={captureRef} className="screenshot-container">

@@ -2,7 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { chromium } from 'playwright';
 import { withAuth } from './middleware';
 
-let cache: { usd: string[]; image: string | null; ts: number } | null = null
+let cache: { usd: string[]; image: string | null; fecha: string | null; ts: number } | null = null
 const TTL = 60_000
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -12,7 +12,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     try {
         if (cache && Date.now() - cache.ts < TTL) {
             res.setHeader('Cache-Control', 'public, max-age=30, s-maxage=60, stale-while-revalidate=300')
-            return res.status(200).json({ usd: cache.usd, image: cache.image })
+            return res.status(200).json({ usd: cache.usd, image: cache.image, fecha: cache.fecha })
         }
         const browser = await chromium.launch({ headless: true });
         const page = await browser.newPage();
@@ -32,10 +32,15 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             return img.getAttribute('src') || null;
         }).catch(() => null);
 
+        // Extraer fecha del span cero
+        const fecha = await page.$eval('#ctl00_MarPrinc > span:nth-child(1)', (el) => {
+            return el.textContent?.trim() || null;
+        }).catch(() => null);
+
         await browser.close();
-        cache = { usd, image, ts: Date.now() }
+        cache = { usd, image, fecha, ts: Date.now() }
         res.setHeader('Cache-Control', 'public, max-age=30, s-maxage=60, stale-while-revalidate=300')
-        return res.status(200).json({ usd, image });
+        return res.status(200).json({ usd, image, fecha });
     } catch (error) {
         console.error('Error fetching USD:', error);
         if (cache) {

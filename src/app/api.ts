@@ -24,6 +24,7 @@ const api = {
            if(data.usd){
                result.mid = Number(data.usd[0].split(':')[1].trim().replaceAll(',','.'))
                result.image = data?.image || null
+               result.time = data?.fecha || ""
            }else{
                result.mid = 0
            }
