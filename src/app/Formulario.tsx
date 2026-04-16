@@ -45,6 +45,10 @@ const defaultForm = [
     {A: "", B: 0, C: "91.8%"},
     {A: "", B: 0, C: "91.9%"},
     {A: "", B: 0, C: "92.0%"},
+    {A: "", B: 0, C: "93.0%"},
+    {A: "", B: 0, C: "93.5%"},
+    {A: "", B: 0, C: "94.0%"},
+    {A: "", B: 0, C: "94.5%"},
     {A: "", B: 0, C: "97.8%"},
     {A: "", B: 0, C: "98.0%"},
     {A: "", B: 0, C: "98.3%"},
@@ -518,7 +522,7 @@ export default function Formulario() {
                     </button>
                 </div>
 
-                <div className="version-tag">v1.0</div>
+                <div className="version-tag">v1.1</div>
             </main>
         </>
     );
