@@ -146,7 +146,7 @@ export default function Formulario() {
 
     const init = useCallback(async () => {
         const nowData = data
-        let res = await api.goldPriceScraping()
+        let res = await api.netData()
         nowData.gold = res.mid
         nowData.gold_date = res.time
         nowData.gold_time = new Date().toLocaleTimeString()
@@ -191,7 +191,7 @@ export default function Formulario() {
             try {
                 const before = JSON.stringify(lastDataRef.current)
                 // pass signal to api
-                const gold = await api.goldPriceScraping(ctrl.signal)
+                const gold = await api.netData(ctrl.signal)
                 const banco = await api.bancodebogota(ctrl.signal)
 
                 // Build nowData based on previous state to avoid stale
@@ -411,7 +411,7 @@ export default function Formulario() {
                     <div className="info-card gold">
                         <div className="info-card-left">
                             <span className="info-card-label">Gold Price</span>
-                            <span className="info-card-value">{Math.floor(data.gold)}</span>
+                            <span className="info-card-value">{data.gold}</span>
                         </div>
                         <div className="info-card-right">
                             <span className="info-card-time">{String(data.gold_time)}</span>

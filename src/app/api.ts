@@ -1,4 +1,3 @@
-import axios, { RawAxiosRequestHeaders } from "axios";
 
 function getAuthToken(): string | null {
     if (typeof window !== 'undefined') {
@@ -8,11 +7,6 @@ function getAuthToken(): string | null {
 }
 
 function getAuthHeaders(): HeadersInit {
-    const token = getAuthToken();
-    return token ? { 'Authorization': `Bearer ${token}` } : {};
-}
-
-function getAxiosAuthHeaders(): RawAxiosRequestHeaders {
     const token = getAuthToken();
     return token ? { 'Authorization': `Bearer ${token}` } : {};
 }
@@ -39,26 +33,6 @@ const api = {
             return result
        }
     },
-    goldPrice: async (signal?: AbortSignal)=>{
-        const res = {mid:0, image: null as string | null,time: ""};
-        const metalPrice = "xauPrice";
-        const metalChange = "chgXau";
-        const metalClose = "xauClose";
-     try {
-         //https://data-asg.goldprice.org/dbXRates/USD
-         const response = await axios.get(`/api/getGold`, { timeout: 10000, signal, headers: getAxiosAuthHeaders() });
-         const result = response.data;
-         return {
-             mid: result.items[0][metalPrice].toFixed(2),
-             val: result.items[0][metalChange].toFixed(2),
-             oldGold: result.items[0][metalClose].toFixed(2),
-             time: result.date
-         }
-     }catch(e) {
-         console.error(e)
-         return res;
-     }
-    },
     goldPriceScraping: async (signal?: AbortSignal) => {
         const result = { mid: 0 , image: null as string | null, time: ""};
         try {
@@ -70,6 +44,24 @@ const api = {
             if (data.price) {
                 result.mid = data.price.replaceAll(',','');
                 result.time = data.date;
+            }
+            return result;
+        } catch (e) {
+            console.error(e);
+            return result;
+        }
+    },
+    netData: async (signal?: AbortSignal) => {
+        const result = { mid: 0, time: "" };
+        try {
+            const response = await fetch('/api/getNetData', {
+                signal,
+                headers: getAuthHeaders()
+            });
+            const data = await response.json();
+            if (data.value) {
+                result.mid = Number(data.value.replaceAll(',', ''));
+                result.time = data.fecha || "";
             }
             return result;
         } catch (e) {
