@@ -52,7 +52,7 @@ const api = {
         }
     },
     netData: async (signal?: AbortSignal) => {
-        const result = { mid: 0, time: "" };
+        const result = { mid: 0, time: "",image:  null as string | null };
         try {
             const response = await fetch('/api/getNetData', {
                 signal,
