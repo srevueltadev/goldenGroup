@@ -48,7 +48,6 @@ const defaultForm: FormType[] = [
     { A: "", B: 0, C: "", factorEditable: true },
 ];
 
-const FIX = 31.1034768;
 const BASE_INTERVAL = 15_000;
 const MAX_INTERVAL = 60_000;
 
@@ -98,7 +97,7 @@ export default function Formulario() {
     // xauCop = COP/oz from goldprice.org, no TRM needed
     const calculos = useCallback((nowData: DataType) => {
         setData({ ...nowData });
-        const multi = (nowData.gold / FIX) * 1000;
+        const multi = nowData.gold //(nowData.gold / FIX) * 1000;
         setDataForm(prev => {
             const next = prev.map(row => {
                 const pct = Number(String(row.C).replace('%', ''));
@@ -341,12 +340,16 @@ export default function Formulario() {
                 padding: '0 16px', height: '60px',
             }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ color: '#f2ca50', fontSize: '18px' }}>◆</span>
+                    <img src="/icon.png" alt="logo" style={{ width: '32px', height: '32px', objectFit: 'contain' }} />
                     <h1 style={{
                         fontFamily: 'var(--font-playfair), "Playfair Display", serif',
-                        fontSize: '20px', fontWeight: 500, color: '#f2ca50',
+                        fontSize: '20px', fontWeight: 500,
                         margin: 0, letterSpacing: '0.03em',
-                    }}>Golden Group</h1>
+                        background: 'linear-gradient(135deg, #b8860b 0%, #f2ca50 25%, #ffe87c 45%, #d4a017 60%, #f2ca50 75%, #a0720a 100%)',
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                        backgroundClip: 'text',
+                    }}>B&B <span style={{ fontWeight: 700 }}>GOLD</span>SILVER</h1>
                 </div>
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                     {/* Status pill */}
@@ -458,6 +461,12 @@ export default function Formulario() {
                     ) : (
                         /* Desktop: two tables side by side + editable row spanning full width */
                         <>
+                            {/* Editable row full width */}
+                            <div style={{ borderTop: '1px solid rgba(242,202,80,0.2)', background: 'rgba(242,202,80,0.03)' }}>
+                                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                    <tbody>{tableRow(editableRow, dataForm.length - 1, true)}</tbody>
+                                </table>
+                            </div>
                             <div className="matrix-grid">
                                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                                     {tableHead}
@@ -468,18 +477,12 @@ export default function Formulario() {
                                     <tbody>{col2.map((row, i) => tableRow(row, i + half))}</tbody>
                                 </table>
                             </div>
-                            {/* Editable row full width */}
-                            <div style={{ borderTop: '1px solid rgba(242,202,80,0.2)', background: 'rgba(242,202,80,0.03)' }}>
-                                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                                    <tbody>{tableRow(editableRow, dataForm.length - 1, true)}</tbody>
-                                </table>
-                            </div>
                         </>
                     )}
                 </div>
 
                 <p style={{ textAlign: 'center', color: '#4d4635', fontSize: '10px', letterSpacing: '0.1em', fontFamily: 'var(--font-inter), Inter, sans-serif' }}>
-                    v1.2 · Golden Group
+                    v1.2 · B&B GOLDSILVER
                 </p>
             </main>
 

@@ -57,14 +57,18 @@ export default function Login({ onLoginSuccessAction }: LoginProps) {
                 {/* Logo */}
                 <div style={{ textAlign: 'center', marginBottom: '32px' }}>
                     <div style={{ marginBottom: '12px' }}>
-                        <span style={{ fontSize: '48px' }}>◆</span>
+                        <img src="/icon.png" alt="logo" style={{ width: '80px', height: '80px', objectFit: 'contain' }} />
                     </div>
                     <h1 style={{
                         fontFamily: 'var(--font-playfair), "Playfair Display", serif',
                         fontSize: '48px', fontWeight: 700, lineHeight: 1.1,
-                        letterSpacing: '-0.02em', color: '#f2ca50', margin: 0,
+                        letterSpacing: '-0.02em', margin: 0,
+                        background: 'linear-gradient(135deg, #b8860b 0%, #f2ca50 25%, #ffe87c 45%, #d4a017 60%, #f2ca50 75%, #a0720a 100%)',
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                        backgroundClip: 'text',
                     }}>
-                        Golden Group
+                        B&B <span style={{ fontWeight: 900 }}>GOLD</span>SILVER
                     </h1>
                     <p style={{
                         fontFamily: 'var(--font-inter), Inter, sans-serif',
@@ -166,7 +170,7 @@ export default function Login({ onLoginSuccessAction }: LoginProps) {
 
             <footer style={{ position: 'fixed', bottom: 0, left: 0, right: 0, padding: '12px', textAlign: 'center', zIndex: 10 }}>
                 <p style={{ fontSize: '10px', fontWeight: 600, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#4d4635' }}>
-                    © Golden Group
+                    © B&B GOLDSILVER
                 </p>
             </footer>
         </div>

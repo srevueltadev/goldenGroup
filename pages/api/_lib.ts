@@ -18,9 +18,9 @@ async function _fetchGold(): Promise<{ xauCop: number; fecha: string | null }> {
     });
     if (!response.ok) throw new Error(`Gold API error: ${response.status}`);
     const data = await response.json();
-    const item = data.items?.[0];
+    const item =  {xauPrice:Number((data.items[0]['xauPrice'] / 31.1034768).toFixed(2))}
     if (!item) throw new Error('No gold data in response');
-    return { xauCop: item.xauPrice as number, fecha: data.date || null };
+    return { xauCop: item.xauPrice, fecha: data.date || null };
 }
 
 export async function getOrFetchGold(): Promise<{ xauCop: number; fecha: string | null }> {
