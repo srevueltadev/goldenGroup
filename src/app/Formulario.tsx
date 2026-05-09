@@ -1,529 +1,509 @@
 'use client'
-import React, {useCallback, useEffect, useRef, useState} from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import api from "@/app/api";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
-import {toast, ToastContainer} from "react-toastify";
-
-function formatToMoney(value: number | string) {
-    if (isNaN(Number(value)) || value === "") {
-        return value
-    }
-    const numValue = Number(value);
-    return numValue.toLocaleString('es-CO');
+function formatMoney(value: number | string) {
+    if (isNaN(Number(value)) || value === "") return value;
+    return Number(value).toLocaleString('es-CO');
 }
 
 export interface FormType {
     A: string | number;
     B: number | string;
     C: string | number;
-    formatEn?: boolean;
-    goldStyle?: object;
-    factorStyle?: object;
-    entidadStyle?: object;
     factorEditable?: boolean;
 }
 
+// gold = xauCop (COP per troy oz, from goldprice.org REST API)
+// dolar = TRM informational only (Banco de Bogotá)
 export interface DataType {
-    gold: number;
+    gold: number;       // COP/oz from goldprice.org
     gold_time?: string;
     gold_date: string;
-    dolar: number;
+    dolar: number;      // COP/USD (display only)
     dolar_time?: string;
     dolar_date: string;
 }
 
-//const bgBlue ={factorStyle:{backgroundColor: "#88a1c8",fontWeight: 'bold'}, goldStyle: {backgroundColor: "#88a1c8",fontWeight: 'bold'}}
+const defaultForm: FormType[] = [
+    { A: "", B: 0, C: "89.5%" },
+    { A: "", B: 0, C: "90.0%" },
+    { A: "", B: 0, C: "90.5%" },
+    { A: "", B: 0, C: "91.0%" },
+    { A: "", B: 0, C: "91.5%" },
+    { A: "", B: 0, C: "91.6%" },
+    { A: "", B: 0, C: "91.7%" },
+    { A: "", B: 0, C: "91.8%" },
+    { A: "", B: 0, C: "91.9%" },
+    { A: "", B: 0, C: "92.0%" },
+    { A: "", B: 0, C: "93.0%" },
+    { A: "", B: 0, C: "93.5%" },
+    { A: "", B: 0, C: "94.0%" },
+    { A: "", B: 0, C: "94.5%" },
+    { A: "", B: 0, C: "97.8%" },
+    { A: "", B: 0, C: "98.0%" },
+    { A: "", B: 0, C: "98.3%" },
+    { A: "", B: 0, C: "", factorEditable: true },
+];
 
-const defaultForm = [
-    {A: "", B: 0, C: "89.5%"},
-    {A: "", B: 0, C: "90.0%"},
-    {A: "", B: 0, C: "90.5%"},
-    {A: "", B: 0, C: "91.0%"},
-    {A: "", B: 0, C: "91.5%"},
-    {A: "", B: 0, C: "91.6%"},
-    {A: "", B: 0, C: "91.7%"},
-    {A: "", B: 0, C: "91.8%"},
-    {A: "", B: 0, C: "91.9%"},
-    {A: "", B: 0, C: "92.0%"},
-    {A: "", B: 0, C: "93.0%"},
-    {A: "", B: 0, C: "93.5%"},
-    {A: "", B: 0, C: "94.0%"},
-    {A: "", B: 0, C: "94.5%"},
-    {A: "", B: 0, C: "97.8%"},
-    {A: "", B: 0, C: "98.0%"},
-    {A: "", B: 0, C: "98.3%"},
-    {A: "", B: 0, C: "", factorEditable: true},
-]
+const FIX = 31.1034768;
+const BASE_INTERVAL = 15_000;
+const MAX_INTERVAL = 60_000;
 
 export default function Formulario() {
-    const [isError, setIsError] = useState(false)
-    let defaultwindow = false
-    const dateNow = new Date().toLocaleTimeString()
-    let DataDefault = {
-        gold: 0,
-        gold_time: dateNow,
-        gold_date: "",
-        dolar: 0,
-        dolar_time: dateNow,
-        dolar_date: ""
-    }
-    if (typeof window !== "undefined") {
-        defaultwindow = window.innerWidth <= 468
-        if (localStorage.getItem('data')) {
-            DataDefault = JSON.parse(localStorage.getItem('data') || JSON.stringify(DataDefault))
-        }
-    }
-    const [image, setImage] = useState(null)
-    const [isMobile, setIsMobile] = useState(defaultwindow);
-    const [timeScrenshot, setTimeScrenshot] = useState('')
-    const [data, setData] = useState<DataType>(DataDefault)
-    const [countdown, setCountdown] = useState(0)
+    const dateNow = new Date().toLocaleTimeString();
+    let DataDefault: DataType = {
+        gold: 0, gold_time: dateNow, gold_date: "",
+        dolar: 0, dolar_time: dateNow, dolar_date: "",
+    };
+    let defaultwindow = false;
 
-    const [fix] = useState(31.1034768)
+    if (typeof window !== "undefined") {
+        defaultwindow = window.innerWidth <= 768;
+        const saved = localStorage.getItem('data');
+        if (saved) DataDefault = JSON.parse(saved);
+    }
+
+    const [data, setData] = useState<DataType>(DataDefault);
     const [dataForm, setDataForm] = useState<FormType[]>(defaultForm);
-    const defaultValue = "4333.00"
+    const [isError, setIsError] = useState(false);
+    const [image, setImage] = useState<string | null>(null);
+    const [isMobile, setIsMobile] = useState(defaultwindow);
+    const [countdown, setCountdown] = useState(0);
+    const [isSyncing, setIsSyncing] = useState(false);
+
+    const abortRef = useRef<AbortController | null>(null);
+    const intervalRef = useRef(BASE_INTERVAL);
+    const lastDataRef = useRef<DataType | null>(null);
+    const lastSaveRef = useRef(0);
+    const nextExecutionRef = useRef(Date.now() + BASE_INTERVAL);
+    const captureRef = useRef<HTMLDivElement | null>(null);
+
+    const defaultDolar = "4333.00";
+
+    const saveIfChanged = (key: string, value: unknown, throttleMs = 2000) => {
+        if (typeof window === 'undefined') return;
+        const now = Date.now();
+        const prev = localStorage.getItem(key);
+        const next = JSON.stringify(value);
+        if (prev !== next && now - lastSaveRef.current > throttleMs) {
+            localStorage.setItem(key, next);
+            lastSaveRef.current = now;
+        }
+    };
+
+    // Formula: (xauCop / 31.1034768) * 1000 * purity%
+    // xauCop = COP/oz from goldprice.org, no TRM needed
+    const calculos = useCallback((nowData: DataType) => {
+        setData({ ...nowData });
+        const multi = (nowData.gold / FIX) * 1000;
+        setDataForm(prev => {
+            const next = prev.map(row => {
+                const pct = Number(String(row.C).replace('%', ''));
+                return { ...row, B: String(Math.floor(multi * pct / 100)) };
+            });
+            saveIfChanged('dataForm', next);
+            return next;
+        });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    useEffect(() => {
+        let handle: number | undefined;
+        let stopped = false;
+
+        const loop = async () => {
+            if (document.visibilityState !== 'visible') return;
+            abortRef.current?.abort();
+            const ctrl = new AbortController();
+            abortRef.current = ctrl;
+            setIsSyncing(true);
+            try {
+                const { gold, usd: banco } = await api.getData(ctrl.signal);
+
+                const nowData: DataType = {
+                    gold: gold.xauCop || DataDefault.gold,
+                    gold_date: gold.time,
+                    gold_time: new Date().toLocaleTimeString(),
+                    dolar: banco.mid || DataDefault.dolar,
+                    dolar_date: banco.time,
+                    dolar_time: new Date().toLocaleTimeString(),
+                };
+
+                setImage(banco.image ? banco.image.replace('..', '') : null);
+
+                if (banco.mid === 0) {
+                    const saved = typeof window !== 'undefined' ? Number(localStorage.getItem('dolar') || defaultDolar) : 0;
+                    nowData.dolar = saved;
+                    setIsError(true);
+                } else {
+                    setIsError(false);
+                    if (typeof window !== 'undefined') localStorage.setItem('dolar', String(banco.mid));
+                }
+
+                const before = JSON.stringify(lastDataRef.current);
+                const after = JSON.stringify(nowData);
+                if (before !== after) {
+                    lastDataRef.current = nowData;
+                    saveIfChanged('data', nowData);
+                    calculos(nowData);
+                    intervalRef.current = BASE_INTERVAL;
+                } else {
+                    intervalRef.current = Math.min(MAX_INTERVAL, intervalRef.current * 2);
+                }
+            } catch (e: unknown) {
+                if ((e as Error)?.name !== 'AbortError') {
+                    intervalRef.current = Math.min(MAX_INTERVAL, intervalRef.current * 2);
+                }
+            } finally {
+                setIsSyncing(false);
+                if (!stopped && document.visibilityState === 'visible') {
+                    nextExecutionRef.current = Date.now() + intervalRef.current;
+                    handle = window.setTimeout(loop, intervalRef.current);
+                }
+            }
+        };
+
+        const onVisibility = () => {
+            if (document.visibilityState === 'visible') {
+                if (handle) clearTimeout(handle);
+                void loop();
+            } else {
+                if (handle) clearTimeout(handle);
+                abortRef.current?.abort();
+            }
+        };
+
+        document.addEventListener('visibilitychange', onVisibility);
+        void loop();
+        return () => {
+            stopped = true;
+            if (handle) clearTimeout(handle);
+            abortRef.current?.abort();
+            document.removeEventListener('visibilitychange', onVisibility);
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    useEffect(() => {
+        const id = setInterval(() => {
+            setCountdown(Math.ceil(Math.max(0, nextExecutionRef.current - Date.now()) / 1000));
+        }, 1000);
+        return () => clearInterval(id);
+    }, []);
+
+    useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth <= 768);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     const handleLogout = () => {
-        if (window.confirm('¿Estás seguro que deseas cerrar sesión?')) {
+        if (window.confirm('¿Cerrar sesión?')) {
             localStorage.removeItem('authToken');
             localStorage.removeItem('authExpiry');
             window.location.reload();
         }
     };
 
-    useEffect(() => {
-        init()
-        const metaViewport = document.createElement('meta');
-        metaViewport.name = 'viewport';
-        metaViewport.content = 'width=device-width, initial-scale=1.0, user-scalable=no';
-        document.head.appendChild(metaViewport);
-
-        return () => {
-            document.head.removeChild(metaViewport);
-        };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
-
-    useEffect(() => {
-        const originalTitle = document.title;
-
-        const handleBlur = () => {
-            document.title = "¡Vuelve pronto!";
-        };
-
-        const handleFocus = () => {
-            document.title = originalTitle;
-        };
-
-        window.addEventListener('blur', handleBlur);
-        window.addEventListener('focus', handleFocus);
-
-        return () => {
-            window.removeEventListener('blur', handleBlur);
-            window.removeEventListener('focus', handleFocus);
-            document.title = originalTitle;
-        };
-    }, [data.dolar]);
-
-    const abortRef = useRef<AbortController | null>(null)
-    const baseInterval = 15000
-    const maxInterval = 60000
-    const intervalRef = useRef(baseInterval)
-    const lastDataRef = useRef<DataType | null>(null)
-    const lastSaveRef = useRef(0)
-    const nextExecutionRef = useRef(Date.now() + baseInterval)
-
-    const saveIfChanged = (key: string, value: unknown, throttleMs = 2000) => {
-        if (typeof window === 'undefined') return
-        const now = Date.now()
-        const prev = localStorage.getItem(key)
-        const next = JSON.stringify(value)
-        if (prev !== next && now - lastSaveRef.current > throttleMs) {
-            localStorage.setItem(key, next)
-            lastSaveRef.current = now
-        }
-    }
-
-    const init = useCallback(async () => {
-        const nowData = data
-        let res = await api.netData()
-        nowData.gold = res.mid
-        nowData.gold_date = res.time
-        nowData.gold_time = new Date().toLocaleTimeString()
-
-        res = await api.bancodebogota()
-        nowData.dolar_time = new Date().toLocaleTimeString()
-        nowData.dolar_date = res.time
-        if (res.image) {
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-expect-error
-            setImage(res?.image.replace('..', ''))
-        }else{
-            setImage(null)
-        }
-        if (res.mid === 0) {
-            if (typeof window !== "undefined") {
-                nowData.dolar = Number(localStorage.getItem('dolar') || defaultValue)
-            }
-            setIsError(true)
-        } else {
-            nowData.dolar = res.mid
-            setIsError(false)
-            if (typeof window !== "undefined") {
-                localStorage.setItem('dolar', String(res.mid))
-            }
-        }
-        saveIfChanged('data', nowData)
-        calculos(nowData)
-    }, []);
-
-
-    useEffect(() => {
-        let handle: number | undefined
-        let stopped = false
-
-        const loop = async () => {
-            if (document.visibilityState !== 'visible') return
-            // cancel previous
-            abortRef.current?.abort()
-            const ctrl = new AbortController()
-            abortRef.current = ctrl
-            try {
-                const before = JSON.stringify(lastDataRef.current)
-                // pass signal to api
-                const gold = await api.netData(ctrl.signal)
-                const banco = await api.bancodebogota(ctrl.signal)
-
-                // Build nowData based on previous state to avoid stale
-                const nowData = {
-                    ...data,
-                    gold: gold.mid || data.gold,
-                    gold_date: gold.time,
-                    gold_time: new Date().toLocaleTimeString(),
-                    dolar: banco.mid || data.dolar,
-                    dolar_date: banco.time,
-                    dolar_time: new Date().toLocaleTimeString(),
-                } as DataType
-
-                if (banco.image){
-                    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                    // @ts-expect-error
-                    setImage(banco?.image.replace('..', ''))
-                }else {
-                    setImage(null)
-                }
-
-                // recompute prom based on dolar result present or previous
-                const after = JSON.stringify(nowData)
-                const changed = before !== after
-                if (changed) {
-                    lastDataRef.current = nowData
-                    saveIfChanged('data', nowData)
-                    calculos(nowData)
-                    intervalRef.current = baseInterval
-                } else {
-                    intervalRef.current = Math.min(maxInterval, intervalRef.current * 2)
-                }
-            } catch (e) {
-                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                // @ts-expect-error
-                if (e?.name !== 'AbortError') {
-                    // backoff on errors
-                    intervalRef.current = Math.min(maxInterval, intervalRef.current * 2)
-                }
-            } finally {
-                if (!stopped && document.visibilityState === 'visible') {
-                    nextExecutionRef.current = Date.now() + intervalRef.current
-                    handle = window.setTimeout(loop, intervalRef.current)
-                }
-            }
-        }
-
-        const onVisibility = () => {
-            if (document.visibilityState === 'visible') {
-                if (handle) clearTimeout(handle)
-                loop().then()
-            } else {
-                if (handle) clearTimeout(handle)
-                abortRef.current?.abort()
-            }
-        }
-
-        document.addEventListener('visibilitychange', onVisibility)
-        // first run
-        loop().then()
-        return () => {
-            stopped = true
-            if (handle) clearTimeout(handle)
-            abortRef.current?.abort()
-            document.removeEventListener('visibilitychange', onVisibility)
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
-
-    // Countdown timer effect
-    useEffect(() => {
-        const countdownInterval = setInterval(() => {
-            const remaining = Math.max(0, nextExecutionRef.current - Date.now())
-            setCountdown(Math.ceil(remaining / 1000))
-        }, 1000)
-
-        return () => clearInterval(countdownInterval)
-    }, [])
-
-    const calculos = (nowData: DataType) => {
-        setData({...nowData})
-
-        // clone dataForm to avoid in-place mutation
-        const newDataForm = dataForm.map((row) => ({...row}))
-        //porcentajes
-
-        const multi = ((Number(nowData.gold) *  Number(nowData.dolar)) / fix)  * 1000
-
-        for (let i = 0; i <= newDataForm.length - 1; i++) {
-            const porcentaje = Number(String(newDataForm[i].C).replace('%', ''))
-            newDataForm[i].B = String(Math.floor(multi * porcentaje / 100))
-        }
-        const prev = JSON.stringify(dataForm)
-        const next = JSON.stringify(newDataForm)
-        if (prev !== next) {
-            saveIfChanged('dataForm', newDataForm)
-            setDataForm(newDataForm)
-        }
-    }
-
-    useEffect(() => {
-        const handleResize = () => {
-            setIsMobile(window.innerWidth <= 468);
-        };
-        window.addEventListener("resize", handleResize);
-        return () => window.removeEventListener("resize", handleResize);
-    }, []);
-
-    const captureRef = useRef<HTMLDivElement>(null);
-
     const handleCapture = async () => {
-        if (captureRef.current) {
-            try {
-                const {default: html2canvas} = await import('html2canvas')
-                const canvas = await html2canvas(captureRef.current);
-                canvas.toBlob(async (blob) => {
-                    if (blob) {
-                        if (isMobile) {
-                            const file = new File([blob], "screenshot.png", {type: "image/png"}) as File;
-                            const shareData = { files: [file], title: "Precio", text: "" };
-                            // Verificar si el navegador soporta compartir archivos
-                            if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
-                                try {
-                                    await navigator.share(shareData);
-                                    toast.success("Imagen compartida exitosamente");
-                                } catch (error) {
-                                    // El usuario canceló o hubo un error
-                                    if ((error as Error).name !== 'AbortError') {
-                                        toast.error("Error al compartir la imagen");
-                                    }
-                                }
-                            } else {
-                                // Fallback: descargar la imagen
-                                toast.info("Descargando imagen...");
-                                const dataUrl = canvas.toDataURL("image/png");
-                                const link = document.createElement("a");
-                                link.href = dataUrl;
-                                link.download = "screenshot.png";
-                                link.click();
-                            }
-                        } else {
-                            try {
-                                const item = new ClipboardItem({"image/png": blob});
-                                await navigator.clipboard.write([item]);
-                                toast.success("Imagen copiada al portapapeles");
-                                // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                            } catch (error) {
-                                toast.error("Error al copiar la imagen al portapapeles");
-                            }
-                        }
+        if (!captureRef.current) return;
+        try {
+            const { default: html2canvas } = await import('html2canvas');
+            const canvas = await html2canvas(captureRef.current, { backgroundColor: '#131313' });
+            canvas.toBlob(async (blob) => {
+                if (!blob) return;
+                if (isMobile) {
+                    const file = new File([blob], "golden-group.png", { type: "image/png" }) as File;
+                    const shareData: ShareData = { files: [file], title: "Precio Oro", text: "" };
+                    if (navigator.share && navigator.canShare?.(shareData)) {
+                        try { await navigator.share(shareData); toast.success("Imagen compartida"); }
+                        catch (e) { if ((e as Error).name !== 'AbortError') toast.error("Error al compartir"); }
+                    } else {
+                        const url = canvas.toDataURL("image/png");
+                        const a = document.createElement("a");
+                        a.href = url; a.download = "golden-group.png"; a.click();
                     }
-                }, "image/png");
-                // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            } catch (error) {
-                toast.error("Error al capturar la pantalla");
-            }
-        }
-        setTimeScrenshot('')
-
+                } else {
+                    try {
+                        await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+                        toast.success("Imagen copiada al portapapeles");
+                    } catch { toast.error("Error al copiar imagen"); }
+                }
+            }, "image/png");
+        } catch { toast.error("Error al capturar"); }
     };
+
+    const labelCaps: React.CSSProperties = {
+        fontSize: '12px', fontWeight: 600, letterSpacing: '0.1em',
+        textTransform: 'uppercase', color: '#99907c',
+        fontFamily: 'var(--font-inter), Inter, sans-serif', margin: 0,
+    };
+    const secondaryText: React.CSSProperties = {
+        color: '#99907c', fontSize: '12px',
+        fontFamily: 'var(--font-inter), Inter, sans-serif', margin: 0,
+    };
+
+    // Split form rows for 2-column desktop layout
+    // Last row (editable) spans full width
+    const fixedRows = dataForm.slice(0, dataForm.length - 1);
+    const editableRow = dataForm[dataForm.length - 1];
+    const half = Math.ceil(fixedRows.length / 2);
+    const col1 = fixedRows.slice(0, half);
+    const col2 = fixedRows.slice(half);
+
+    const tableRow = (row: FormType, i: number, isEditable = false) => (
+        <tr
+            key={i}
+            style={{
+                borderTop: '1px solid rgba(77,70,53,0.15)',
+                background: isEditable ? 'rgba(242,202,80,0.03)' : 'transparent',
+                transition: 'background 0.15s',
+            }}
+            onMouseEnter={e => { if (!isEditable) (e.currentTarget as HTMLElement).style.background = 'rgba(53,53,52,0.3)'; }}
+            onMouseLeave={e => { if (!isEditable) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+        >
+            <td style={{ padding: '10px 14px', color: '#d0c5af', fontSize: '14px', fontFamily: 'var(--font-inter), Inter, sans-serif' }}>
+                {isEditable ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <input
+                            type="number"
+                            value={row.C}
+                            autoComplete="off"
+                            placeholder="Propia"
+                            onChange={e => {
+                                const idx = dataForm.length - 1;
+                                setDataForm(prev => {
+                                    const next = [...prev];
+                                    next[idx] = { ...next[idx], C: e.target.value };
+                                    return next;
+                                });
+                                calculos(data);
+                            }}
+                            style={{
+                                background: 'transparent', border: 'none',
+                                borderBottom: '1px solid rgba(242,202,80,0.4)',
+                                color: '#f2ca50', fontWeight: 700, width: '65px',
+                                fontSize: '14px', outline: 'none', padding: '2px 0',
+                                fontFamily: 'var(--font-inter), Inter, sans-serif',
+                            }}
+                        />
+                        <span style={{ color: '#f2ca50', fontWeight: 700 }}>%</span>
+                    </div>
+                ) : row.C}
+            </td>
+            <td style={{ padding: '10px 14px', textAlign: 'right' }}>
+                <span className="num" style={{
+                    fontWeight: 600, fontSize: '14px',
+                    fontFamily: 'var(--font-inter), Inter, sans-serif',
+                    color: isEditable ? '#f2ca50' : '#e5e2e1',
+                }}>
+                    {Number(row.B) > 0 ? `$${formatMoney(Math.floor(Number(row.B) / 1000))}` : '—'}
+                </span>
+            </td>
+        </tr>
+    );
+
+    const tableHead = (
+        <thead>
+            <tr style={{ background: '#201f1f', borderBottom: '1px solid rgba(77,70,53,0.2)' }}>
+                <th style={{ ...labelCaps, padding: '10px 14px', fontWeight: 600 }}>PUREZA</th>
+                <th style={{ ...labelCaps, padding: '10px 14px', textAlign: 'right', fontWeight: 600 }}>COP/g</th>
+            </tr>
+        </thead>
+    );
 
     return (
         <>
-            <ToastContainer/>
-            <main className={'card'}>
-                {/* Header with countdown and logout */}
-                <div className="header-bar">
-                    <div className="countdown-timer">
-                        Próxima actualización en: <strong>{countdown}s</strong>
+            <ToastContainer theme="dark" />
+
+            <style>{`
+                @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+                input[type=number]::-webkit-inner-spin-button,
+                input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
+                input[type=number] { -moz-appearance: textfield; }
+                .matrix-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: rgba(77,70,53,0.15); }
+                .matrix-grid table { background: #131313; }
+                @media (max-width: 768px) {
+                    .matrix-grid { grid-template-columns: 1fr; }
+                }
+            `}</style>
+
+            {/* Fixed top header */}
+            <header style={{
+                position: 'fixed', top: 0, left: 0, right: 0, zIndex: 50,
+                background: 'rgba(19,19,19,0.85)', backdropFilter: 'blur(20px)',
+                WebkitBackdropFilter: 'blur(20px)',
+                borderBottom: '1px solid rgba(77,70,53,0.3)',
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                padding: '0 16px', height: '60px',
+            }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ color: '#f2ca50', fontSize: '18px' }}>◆</span>
+                    <h1 style={{
+                        fontFamily: 'var(--font-playfair), "Playfair Display", serif',
+                        fontSize: '20px', fontWeight: 500, color: '#f2ca50',
+                        margin: 0, letterSpacing: '0.03em',
+                    }}>Golden Group</h1>
+                </div>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    {/* Status pill */}
+                    <div style={{ display: 'flex', justifyContent: 'center' }}>
+                        <div className="glass-card" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '5px 14px', borderRadius: '9999px' }}>
+                            <span className="pulse-dot" />
+                            <span style={{ fontSize: '12px', fontWeight: 600, letterSpacing: '0.05em', color: '#54e98a', fontFamily: 'var(--font-inter), Inter, sans-serif' }}>
+                            Actualiza en {countdown}s
+                        </span>
+                        </div>
                     </div>
-                    <button className="logout-button" onClick={handleLogout}>
+                    {isSyncing && (
+                        <span style={{ color: '#f2ca50', fontSize: '18px', display: 'inline-block', animation: 'spin 1s linear infinite' }}>↻</span>
+                    )}
+                    <button
+                        onClick={handleLogout}
+                        style={{
+                            background: 'transparent', border: '1px solid rgba(77,70,53,0.5)',
+                            color: '#99907c', borderRadius: '20px', padding: '4px 12px',
+                            fontSize: '12px', cursor: 'pointer', fontFamily: 'var(--font-inter), Inter, sans-serif',
+                        }}
+                    >
                         Salir
                     </button>
                 </div>
-                {/* Info Cards Section */}
-                <div className="info-cards-container">
+            </header>
 
-                    {/* Dolar Card */}
-                    <div className="info-card dolar">
-                        <div className="info-card-left">
-                            <span className="info-card-label">
-                                {isError ? "Ingrese dolar ⬇" : "Banco de Bogotá"}
+            {/* Background glow */}
+            <div style={{ position: 'fixed', inset: 0, overflow: 'hidden', pointerEvents: 'none', zIndex: 0 }}>
+                <div style={{ position: 'absolute', top: '-10%', left: '-10%', width: '40%', height: '40%', borderRadius: '50%', background: 'rgba(242,202,80,0.04)', filter: 'blur(120px)' }} />
+                <div style={{ position: 'absolute', bottom: '-10%', right: '-10%', width: '40%', height: '40%', borderRadius: '50%', background: 'rgba(242,202,80,0.04)', filter: 'blur(120px)' }} />
+            </div>
+
+            <main style={{
+                marginTop: '60px', padding: '16px 20px',
+                maxWidth: '900px', marginLeft: 'auto', marginRight: 'auto',
+                display: 'flex', flexDirection: 'column', gap: '12px',
+                position: 'relative', zIndex: 1,
+            }}>
+
+                {/* Price cards */}
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '12px' }}>
+                    {/* Gold spot (COP/oz) */}
+                    <div className="glass-card" style={{ padding: '16px', borderRadius: '12px', borderTop: '2px solid rgba(242,202,80,0.2)' }}>
+                        <p style={labelCaps}>PRECIO ORO SPOT</p>
+                        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginTop: '6px' }}>
+                            <span className="num" style={{ fontSize: '26px', fontWeight: 600, color: '#f2ca50', letterSpacing: '-0.01em', fontFamily: 'var(--font-inter), Inter, sans-serif' }}>
+                                {data.gold > 0 ? `$${formatMoney(Math.round(data.gold))}` : '—'}
                             </span>
+                            <span style={secondaryText}>COP/oz</span>
+                        </div>
+                        <p style={{ ...secondaryText, marginTop: '4px' }}>{data.gold_date || data.gold_time}</p>
+                    </div>
+
+                    {/* TRM */}
+                    <div className="glass-card" style={{ padding: '16px', borderRadius: '12px', borderTop: '2px solid rgba(242,202,80,0.2)' }}>
+                        <p style={labelCaps}>{isError ? 'INGRESE TRM ▼' : 'TRM OFICIAL'}</p>
+                        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginTop: '6px' }}>
                             {isError ? (
                                 <input
                                     type="number"
-                                    name="bancodebogota"
-                                    placeholder="4333"
-                                    autoComplete="off"
                                     value={data.dolar}
-                                    onChange={(e) => {
-                                        const nowData = {...data}
-                                        nowData.dolar = Number(e.target.value || 0)
-                                        setData({...nowData})
-                                        calculos(nowData)
-                                        if (typeof window !== "undefined") {
-                                            localStorage.setItem('dolar', String(e.target.value || defaultValue))
-                                        }
+                                    autoComplete="off"
+                                    placeholder="4333"
+                                    onChange={e => {
+                                        const nowData = { ...data, dolar: Number(e.target.value || 0) };
+                                        setData(nowData);
+                                        localStorage.setItem('dolar', e.target.value || defaultDolar);
+                                    }}
+                                    style={{
+                                        background: 'transparent', border: 'none',
+                                        borderBottom: '1px solid #f2ca50', color: '#f2ca50',
+                                        fontSize: '26px', fontWeight: 600, width: '100%',
+                                        outline: 'none', fontFamily: 'var(--font-inter), Inter, sans-serif',
                                     }}
                                 />
                             ) : (
-                                <span className="info-card-value"
-                                      style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
-                                    {image && (<img src={`https://pbit.bancodebogota.com${image}`} alt="indicador"
-                                                    style={{width: 10, height: 10}}/>)}
-                                    {formatToMoney(data.dolar)}</span>
+                                <span className="num" style={{ fontSize: '26px', fontWeight: 600, color: '#e5e2e1', letterSpacing: '-0.01em', fontFamily: 'var(--font-inter), Inter, sans-serif', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    {image && <img src={`https://pbit.bancodebogota.com${image}`} alt="" style={{ width: 10, height: 10 }} />}
+                                    {formatMoney(data.dolar)}
+                                </span>
                             )}
+                            <span style={secondaryText}>COP/USD</span>
                         </div>
-                        <div className="info-card-right">
-                            <span className="info-card-time">{data.dolar_time}</span>
-                            <span className="info-card-extra">
-                                {`Banco de bogota: ${data.dolar_date}`}
-                            </span>
-                        </div>
+                        <p style={{ ...secondaryText, marginTop: '4px' }}>{data.dolar_date || data.dolar_time}</p>
                     </div>
-                    {/* Gold Price Card */}
-                    <div className="info-card gold">
-                        <div className="info-card-left">
-                            <span className="info-card-label">Gold Price</span>
-                            <span className="info-card-value">{data.gold}</span>
-                        </div>
-                        <div className="info-card-right">
-                            <span className="info-card-time">{String(data.gold_time)}</span>
-                            <span className="info-card-extra">
-                              {data.gold_date}
-                            </span>
-
-                        </div>
-                    </div>
-
-
                 </div>
 
-                {/* iframe */}
-                {/*<div className="iframe-container">*/}
-                {/*    <iframe*/}
-                {/*        id="myiframe"*/}
-                {/*        style={{overflow: 'hidden', pointerEvents: 'none', width: '100%', border: 'none'}}*/}
-                {/*        scrolling="no"*/}
-                {/*        rel="preconnect"*/}
-                {/*        src="https://pbit.bancodebogota.com/Indicadores/Tirilla.aspx"*/}
-                {/*        height={50}*/}
-                {/*    />*/}
-                {/*</div>*/}
+                {/* Price matrix — captured for screenshot */}
+                <div ref={captureRef} className="glass-card" style={{ borderRadius: '12px', overflow: 'hidden', backgroundColor: '#131313' }}>
+                    <div style={{ padding: '14px 16px', borderBottom: '1px solid rgba(77,70,53,0.2)', background: 'rgba(28,27,27,0.5)' }}>
+                        <h2 style={{
+                            fontFamily: 'var(--font-playfair), "Playfair Display", serif',
+                            fontSize: '18px', fontWeight: 500, color: '#f2ca50', margin: 0,
+                        }}>
+                            Matriz de Precios
+                        </h2>
+                    </div>
 
-                {/* Screenshot Container */}
-                <div ref={captureRef} className="screenshot-container">
-                    {timeScrenshot !== "" && (
-                        <div className="screenshot-time">
-                            📅 {timeScrenshot}
-                        </div>
+                    {isMobile ? (
+                        /* Mobile: single column table */
+                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                            {tableHead}
+                            <tbody>
+                                {fixedRows.map((row, i) => tableRow(row, i))}
+                                {tableRow(editableRow, fixedRows.length, true)}
+                            </tbody>
+                        </table>
+                    ) : (
+                        /* Desktop: two tables side by side + editable row spanning full width */
+                        <>
+                            <div className="matrix-grid">
+                                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                    {tableHead}
+                                    <tbody>{col1.map((row, i) => tableRow(row, i))}</tbody>
+                                </table>
+                                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                    {tableHead}
+                                    <tbody>{col2.map((row, i) => tableRow(row, i + half))}</tbody>
+                                </table>
+                            </div>
+                            {/* Editable row full width */}
+                            <div style={{ borderTop: '1px solid rgba(242,202,80,0.2)', background: 'rgba(242,202,80,0.03)' }}>
+                                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                    <tbody>{tableRow(editableRow, dataForm.length - 1, true)}</tbody>
+                                </table>
+                            </div>
+                        </>
                     )}
-
-                    {/* Main Price Cards */}
-                    {/*<div className="price-grid">*/}
-                    {/*    /!* ONZA *!/*/}
-                    {/*    <div className="price-item highlight">*/}
-                    {/*        <div className="price-item-left">*/}
-                    {/*            <span className="price-label">Índice 1</span>*/}
-                    {/*            <span className="price-name">ONZA</span>*/}
-                    {/*        </div>*/}
-                    {/*        <div>*/}
-                    {/*            <span className="price-value">{formatToMoney(dataForm[0]?.B || 0)}</span>*/}
-                    {/*            <div style={{fontSize: '0.75rem', color: '#888'}}>{formatToMoney(dataForm[0]?.C || 0)}</div>*/}
-                    {/*        </div>*/}
-                    {/*    </div>*/}
-
-                    {/*    /!* Fix value *!/*/}
-                    {/*    <div className="price-item">*/}
-                    {/*        <div className="price-item-left">*/}
-                    {/*            <span className="price-label">Índice 1</span>*/}
-                    {/*            <span className="price-name">Factor Fix</span>*/}
-                    {/*        </div>*/}
-                    {/*        <span className="price-value">{dataForm[4]?.A || fix}</span>*/}
-                    {/*    </div>*/}
-                    {/*</div>*/}
-
-                    {/* Percentage Section */}
-                    <div className="percentage-section">
-                        <h3 className="percentage-title">📊 Porcentajes</h3>
-                        <div className="percentage-grid">
-                            {dataForm.map((row, index) => (
-                                <div
-                                    key={index}
-                                    className={`percentage-card`}
-                                >
-                                    <div className="percentage-label">
-                                        {row.factorEditable ? (
-                                            <input
-                                                type="number"
-                                                value={row.C}
-                                                autoComplete="off"
-                                                placeholder="0.0%"
-                                                onChange={(e) => {
-                                                    dataForm[index].C = e.target.value
-                                                    setDataForm([...dataForm])
-                                                    calculos(data)
-                                                }}
-                                                style={{
-                                                    width: '70px',
-                                                    textAlign: 'center',
-                                                    border: '1px solid #ddd',
-                                                    borderRadius: '4px',
-                                                    padding: '4px',
-                                                    fontSize: '0.9rem'
-                                                }}
-                                            />
-                                        ) : (
-                                            row.C
-                                        )}
-                                    </div>
-                                    <div className="percentage-amount-b">{formatToMoney(Math.floor(Number(row.B) / 1000))}</div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
                 </div>
 
-                {/* Action Button */}
-                <div className="action-button">
-                    <button onClick={() => {
-                        setTimeScrenshot(`${new Date().toLocaleDateString()} - ${new Date().toLocaleTimeString()} `)
-                        setTimeout(() => {
-                            handleCapture().then()
-                        }, 500)
-                    }}>
-                        {isMobile ? "📤 Compartir tabla" : "📋 Copiar pantallazo al portapapeles"}
-                    </button>
-                </div>
-
-                <div className="version-tag">v1.1</div>
+                <p style={{ textAlign: 'center', color: '#4d4635', fontSize: '10px', letterSpacing: '0.1em', fontFamily: 'var(--font-inter), Inter, sans-serif' }}>
+                    v1.2 · Golden Group
+                </p>
             </main>
+
+            {/* FAB share button */}
+            <button
+                onClick={handleCapture}
+                className="gold-gradient metallic-shine"
+                style={{
+                    position: 'fixed', bottom: '28px', right: '20px',
+                    width: '54px', height: '54px', borderRadius: '50%',
+                    border: 'none', cursor: 'pointer', zIndex: 50,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '20px',
+                    boxShadow: '0 8px 20px rgba(212,175,55,0.3)',
+                    color: '#3c2f00', transition: 'transform 0.15s',
+                }}
+                onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.08)')}
+                onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
+                onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.94)')}
+                onMouseUp={e => (e.currentTarget.style.transform = 'scale(1.08)')}
+                title={isMobile ? "Compartir tabla" : "Copiar pantallazo"}
+            >
+                {isMobile ? '↑' : '⎘'}
+            </button>
         </>
     );
 }

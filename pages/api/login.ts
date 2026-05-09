@@ -1,8 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import crypto from 'crypto';
 
-const SECRET_KEY = process.env.AUTH_SECRET || 'infoGold-secret-key-2024';
-const VALID_USER = 'infoGold';
+const SECRET_KEY = process.env.AUTH_SECRET || 'goldenGroup-secret-key-2024';
+const VALID_USER = 'goldenGroup';
 const VALID_PASS = 'Qweas123*/';
 
 function generateToken(username: string): string {

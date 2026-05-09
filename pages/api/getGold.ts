@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 
+
 interface GoldPriceData {
     items: Array<{
         curr: string;
