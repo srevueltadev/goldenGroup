@@ -1,10 +1,10 @@
-# fly.toml app configuration file generated for info-gold on 2026-03-01T18:35:23-05:00
+# fly.toml app configuration file generated for goldsilver on 2026-05-09T19:42:19Z
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
-app = 'info-gold'
-primary_region = 'iad'
+app = 'goldsilver'
+primary_region = 'ams'
 
 [build]
 
@@ -21,5 +21,6 @@ primary_region = 'iad'
 
 [[vm]]
   memory = '3gb'
+  cpu_kind = 'shared'
   cpus = 2
   memory_mb = 3072
