@@ -280,7 +280,7 @@ export default function Formulario() {
                             type="number"
                             value={row.C}
                             autoComplete="off"
-                            placeholder="Propia"
+                            placeholder="Ingrese %"
                             onChange={e => {
                                 const idx = dataForm.length - 1;
                                 setDataForm(prev => {
@@ -463,8 +463,8 @@ export default function Formulario() {
                         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                             {tableHead}
                             <tbody>
-                                {fixedRows.map((row, i) => tableRow(row, i))}
                                 {tableRow(editableRow, fixedRows.length, true)}
+                                {fixedRows.map((row, i) => tableRow(row, i))}
                             </tbody>
                         </table>
                     ) : (
