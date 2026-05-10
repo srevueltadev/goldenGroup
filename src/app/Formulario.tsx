@@ -28,23 +28,32 @@ export interface DataType {
 }
 
 const defaultForm: FormType[] = [
-    { A: "", B: 0, C: "89.5%" },
-    { A: "", B: 0, C: "90.0%" },
-    { A: "", B: 0, C: "90.5%" },
     { A: "", B: 0, C: "91.0%" },
+    { A: "", B: 0, C: "91.1%" },
+    { A: "", B: 0, C: "91.2%" },
+    { A: "", B: 0, C: "91.3%" },
+    { A: "", B: 0, C: "91.4%" },
     { A: "", B: 0, C: "91.5%" },
-    { A: "", B: 0, C: "91.6%" },
-    { A: "", B: 0, C: "91.7%" },
-    { A: "", B: 0, C: "91.8%" },
-    { A: "", B: 0, C: "91.9%" },
     { A: "", B: 0, C: "92.0%" },
+    { A: "", B: 0, C: "92.1%" },
+    { A: "", B: 0, C: "92.2%" },
+    { A: "", B: 0, C: "92.3%" },
+    { A: "", B: 0, C: "92.4%" },
+    { A: "", B: 0, C: "92.5%" },
     { A: "", B: 0, C: "93.0%" },
     { A: "", B: 0, C: "93.5%" },
     { A: "", B: 0, C: "94.0%" },
     { A: "", B: 0, C: "94.5%" },
-    { A: "", B: 0, C: "97.8%" },
+    { A: "", B: 0, C: "95.0%" },
+    { A: "", B: 0, C: "95.5%" },
+    { A: "", B: 0, C: "96.0%" },
+    { A: "", B: 0, C: "96.5%" },
+    { A: "", B: 0, C: "97.0%" },
+    { A: "", B: 0, C: "97.5%" },
     { A: "", B: 0, C: "98.0%" },
-    { A: "", B: 0, C: "98.3%" },
+    { A: "", B: 0, C: "98.5%" },
+    { A: "", B: 0, C: "99.0%" },
+    { A: "", B: 0, C: "99.5%" },
     { A: "", B: 0, C: "", factorEditable: true },
 ];
 
@@ -299,7 +308,7 @@ export default function Formulario() {
                     fontFamily: 'var(--font-inter), Inter, sans-serif',
                     color: isEditable ? '#f2ca50' : '#e5e2e1',
                 }}>
-                    {Number(row.B) > 0 ? `$${formatMoney(Math.floor(Number(row.B) / 1000))}` : '—'}
+                    {Number(row.B) > 0 ? `$${formatMoney(Number(row.B))}` : '—'}
                 </span>
             </td>
         </tr>
@@ -308,8 +317,8 @@ export default function Formulario() {
     const tableHead = (
         <thead>
             <tr style={{ background: '#201f1f', borderBottom: '1px solid rgba(77,70,53,0.2)' }}>
-                <th style={{ ...labelCaps, padding: '10px 14px', fontWeight: 600 }}>PUREZA</th>
-                <th style={{ ...labelCaps, padding: '10px 14px', textAlign: 'right', fontWeight: 600 }}>COP/g</th>
+                <th style={{ ...labelCaps, padding: '10px 14px', fontWeight: 600 }}>Porcentaje</th>
+                <th style={{ ...labelCaps, padding: '10px 14px', textAlign: 'right', fontWeight: 600 }}>Precio de Gramo</th>
             </tr>
         </thead>
     );
@@ -394,7 +403,7 @@ export default function Formulario() {
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '12px' }}>
                     {/* Gold spot (COP/oz) */}
                     <div className="glass-card" style={{ padding: '16px', borderRadius: '12px', borderTop: '2px solid rgba(242,202,80,0.2)' }}>
-                        <p style={labelCaps}>PRECIO ORO SPOT</p>
+                        <p style={labelCaps}>GoldPrice</p>
                         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginTop: '6px' }}>
                             <span className="num" style={{ fontSize: '26px', fontWeight: 600, color: '#f2ca50', letterSpacing: '-0.01em', fontFamily: 'var(--font-inter), Inter, sans-serif' }}>
                                 {data.gold > 0 ? `$${formatMoney(Math.round(data.gold))}` : '—'}
@@ -406,7 +415,7 @@ export default function Formulario() {
 
                     {/* TRM */}
                     <div className="glass-card" style={{ padding: '16px', borderRadius: '12px', borderTop: '2px solid rgba(242,202,80,0.2)' }}>
-                        <p style={labelCaps}>{isError ? 'INGRESE TRM ▼' : 'TRM OFICIAL'}</p>
+                        <p style={labelCaps}>{isError ? 'INGRESE TRM ▼' : 'TRM Banco de Bogotá'}</p>
                         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginTop: '6px' }}>
                             {isError ? (
                                 <input
@@ -427,7 +436,7 @@ export default function Formulario() {
                                     }}
                                 />
                             ) : (
-                                <span className="num" style={{ fontSize: '26px', fontWeight: 600, color: '#e5e2e1', letterSpacing: '-0.01em', fontFamily: 'var(--font-inter), Inter, sans-serif', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <span className="num" style={{ fontSize: '26px', fontWeight: 600, color: 'green', letterSpacing: '-0.01em', fontFamily: 'var(--font-inter), Inter, sans-serif', display: 'flex', alignItems: 'center', gap: '6px' }}>
                                     {image && <img src={`https://pbit.bancodebogota.com${image}`} alt="" style={{ width: 10, height: 10 }} />}
                                     {formatMoney(data.dolar)}
                                 </span>
