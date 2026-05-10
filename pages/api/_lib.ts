@@ -48,6 +48,7 @@ export async function getOrFetchGold(): Promise<MetalsData> {
                 .catch(() => {})
                 .finally(() => { goldRefreshing = false; });
         }
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { ts: _ts, ...rest } = goldCache;
         return rest;
     }
@@ -58,6 +59,7 @@ export async function getOrFetchGold(): Promise<MetalsData> {
 
 export function getGoldFromCache(): MetalsData | null {
     if (goldCache) {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { ts: _ts, ...rest } = goldCache;
         return rest;
     }

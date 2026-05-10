@@ -57,6 +57,7 @@ export default function Login({ onLoginSuccessAction }: LoginProps) {
                 {/* Logo */}
                 <div style={{ textAlign: 'center', marginBottom: '32px' }}>
                     <div style={{ marginBottom: '12px' }}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src="/icon.png" alt="logo" style={{ width: '80px', height: '80px', objectFit: 'contain' }} />
                     </div>
                     <h1 style={{

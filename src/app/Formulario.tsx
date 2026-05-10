@@ -356,6 +356,7 @@ export default function Formulario() {
                 padding: '0 16px', height: '60px',
             }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src="/icon.png" alt="logo" style={{ width: '32px', height: '32px', objectFit: 'contain' }} />
                     <h1 style={{
                         fontFamily: 'var(--font-playfair), "Playfair Display", serif',
@@ -484,6 +485,7 @@ export default function Formulario() {
                             />
                         ) : (
                             <span className="num" style={{ fontSize: '22px', fontWeight: 600, color: '#54e98a', letterSpacing: '-0.01em', fontFamily: 'var(--font-inter), Inter, sans-serif', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
                                 {image && <img src={`https://pbit.bancodebogota.com${image}`} alt="" style={{ width: 10, height: 10 }} />}
                                 {formatMoney(data.dolar)}
                             </span>
