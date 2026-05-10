@@ -14,11 +14,11 @@ function getAuthHeaders(): HeadersInit {
 const api = {
     // Combined endpoint — fetches gold + USD in one round trip
     getData: async (signal?: AbortSignal): Promise<{
-        gold: { xauCop: number; time: string };
+        gold: { xauCop: number; xagCopKg: number; goldUsdOz: number; silverUsdOz: number; time: string };
         usd: { mid: number; image: string | null; time: string };
     }> => {
         const result = {
-            gold: { xauCop: 0, time: '' },
+            gold: { xauCop: 0, xagCopKg: 0, goldUsdOz: 0, silverUsdOz: 0, time: '' },
             usd: { mid: 0, image: null as string | null, time: '' },
         };
         try {
@@ -26,7 +26,10 @@ const api = {
             const data = await response.json();
 
             if (data.gold?.xauCop) {
-                result.gold.xauCop = Number(data.gold.xauCop);
+                result.gold.xauCop    = Number(data.gold.xauCop);
+                result.gold.xagCopKg  = Number(data.gold.xagCopKg  || 0);
+                result.gold.goldUsdOz = Number(data.gold.goldUsdOz  || 0);
+                result.gold.silverUsdOz = Number(data.gold.silverUsdOz || 0);
                 result.gold.time = data.gold.fecha || '';
             }
             if (data.usd?.usd?.[0]) {

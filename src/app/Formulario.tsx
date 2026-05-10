@@ -16,13 +16,16 @@ export interface FormType {
     factorEditable?: boolean;
 }
 
-// gold = xauCop (COP per troy oz, from goldprice.org REST API)
+// gold = xauCop (COP per gram, from goldprice.org REST API)
 // dolar = TRM informational only (Banco de Bogotá)
 export interface DataType {
-    gold: number;       // COP/oz from goldprice.org
+    gold: number;         // Gold COP/gram
+    goldUsdOz: number;    // Gold USD/oz
+    silverCopKg: number;  // Silver COP/kg
+    silverUsdOz: number;  // Silver USD/oz
     gold_time?: string;
     gold_date: string;
-    dolar: number;      // COP/USD (display only)
+    dolar: number;        // COP/USD (display only)
     dolar_time?: string;
     dolar_date: string;
 }
@@ -63,7 +66,8 @@ const MAX_INTERVAL = 60_000;
 export default function Formulario() {
     const dateNow = new Date().toLocaleTimeString();
     let DataDefault: DataType = {
-        gold: 0, gold_time: dateNow, gold_date: "",
+        gold: 0, goldUsdOz: 0, silverCopKg: 0, silverUsdOz: 0,
+        gold_time: dateNow, gold_date: "",
         dolar: 0, dolar_time: dateNow, dolar_date: "",
     };
     let defaultwindow = false;
@@ -132,7 +136,10 @@ export default function Formulario() {
                 const { gold, usd: banco } = await api.getData(ctrl.signal);
 
                 const nowData: DataType = {
-                    gold: gold.xauCop || DataDefault.gold,
+                    gold:         gold.xauCop      || DataDefault.gold,
+                    goldUsdOz:    gold.goldUsdOz   || DataDefault.goldUsdOz,
+                    silverCopKg:  gold.xagCopKg    || DataDefault.silverCopKg,
+                    silverUsdOz:  gold.silverUsdOz || DataDefault.silverUsdOz,
                     gold_date: gold.time,
                     gold_time: new Date().toLocaleTimeString(),
                     dolar: banco.mid || DataDefault.dolar,
@@ -280,7 +287,7 @@ export default function Formulario() {
                             type="number"
                             value={row.C}
                             autoComplete="off"
-                            placeholder="Ingrese %"
+                            placeholder="Ingrese"
                             onChange={e => {
                                 const idx = dataForm.length - 1;
                                 setDataForm(prev => {
@@ -399,64 +406,102 @@ export default function Formulario() {
                 position: 'relative', zIndex: 1,
             }}>
 
-                {/* Price cards */}
-                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '12px' }}>
-                    {/* Gold spot (COP/oz) */}
-                    <div className="glass-card" style={{ padding: '16px', borderRadius: '12px', borderTop: '2px solid rgba(242,202,80,0.2)' }}>
-                        <p style={labelCaps}>GoldPrice</p>
+                {/* Metals price cards — 2×2 grid */}
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile?"1fr": '1fr 1fr', gap: '12px' }}>
+                    {/* Gold COP/g */}
+                    <div className="glass-card" style={{ padding: '16px', borderRadius: '12px', borderTop: '2px solid rgba(242,202,80,0.3)' }}>
+                        <p style={labelCaps}>ORO · COP</p>
                         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginTop: '6px' }}>
-                            <span className="num" style={{ fontSize: '26px', fontWeight: 600, color: '#f2ca50', letterSpacing: '-0.01em', fontFamily: 'var(--font-inter), Inter, sans-serif' }}>
+                            <span className="num" style={{ fontSize: '22px', fontWeight: 600, color: '#f2ca50', letterSpacing: '-0.01em', fontFamily: 'var(--font-inter), Inter, sans-serif' }}>
                                 {data.gold > 0 ? `$${formatMoney(Math.round(data.gold))}` : '—'}
                             </span>
-                            <span style={secondaryText}>COP/oz</span>
+                            <span style={secondaryText}>COP/g</span>
                         </div>
                         <p style={{ ...secondaryText, marginTop: '4px' }}>{data.gold_date || data.gold_time}</p>
                     </div>
 
-                    {/* TRM */}
-                    <div className="glass-card" style={{ padding: '16px', borderRadius: '12px', borderTop: '2px solid rgba(242,202,80,0.2)' }}>
-                        <p style={labelCaps}>{isError ? 'INGRESE TRM ▼' : 'TRM Banco de Bogotá'}</p>
+                    {/* Gold USD/oz */}
+                    <div className="glass-card" style={{ padding: '16px', borderRadius: '12px', borderTop: '2px solid rgba(242,202,80,0.3)' }}>
+                        <p style={labelCaps}>ORO · USD</p>
                         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginTop: '6px' }}>
-                            {isError ? (
-                                <input
-                                    type="number"
-                                    value={data.dolar}
-                                    autoComplete="off"
-                                    placeholder="4333"
-                                    onChange={e => {
-                                        const nowData = { ...data, dolar: Number(e.target.value || 0) };
-                                        setData(nowData);
-                                        localStorage.setItem('dolar', e.target.value || defaultDolar);
-                                    }}
-                                    style={{
-                                        background: 'transparent', border: 'none',
-                                        borderBottom: '1px solid #f2ca50', color: '#f2ca50',
-                                        fontSize: '26px', fontWeight: 600, width: '100%',
-                                        outline: 'none', fontFamily: 'var(--font-inter), Inter, sans-serif',
-                                    }}
-                                />
-                            ) : (
-                                <span className="num" style={{ fontSize: '26px', fontWeight: 600, color: 'green', letterSpacing: '-0.01em', fontFamily: 'var(--font-inter), Inter, sans-serif', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                    {image && <img src={`https://pbit.bancodebogota.com${image}`} alt="" style={{ width: 10, height: 10 }} />}
-                                    {formatMoney(data.dolar)}
-                                </span>
-                            )}
-                            <span style={secondaryText}>COP/USD</span>
+                            <span className="num" style={{ fontSize: '22px', fontWeight: 600, color: '#f2ca50', letterSpacing: '-0.01em', fontFamily: 'var(--font-inter), Inter, sans-serif' }}>
+                                {data.goldUsdOz > 0 ? `$${formatMoney(data.goldUsdOz.toFixed(2))}` : '—'}
+                            </span>
+                            <span style={secondaryText}>USD/oz</span>
                         </div>
-                        <p style={{ ...secondaryText, marginTop: '4px' }}>{data.dolar_date || data.dolar_time}</p>
+                        <p style={{ ...secondaryText, marginTop: '4px' }}>{data.gold_date || data.gold_time}</p>
+                    </div>
+
+                    {/* Silver COP/kg */}
+                    <div className="glass-card" style={{ padding: '16px', borderRadius: '12px', borderTop: '2px solid rgba(180,180,210,0.3)' }}>
+                        <p style={labelCaps}>PLATA · COP</p>
+                        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginTop: '6px' }}>
+                            <span className="num" style={{ fontSize: '22px', fontWeight: 600, color: '#c0c8d8', letterSpacing: '-0.01em', fontFamily: 'var(--font-inter), Inter, sans-serif' }}>
+                                {data.silverCopKg > 0 ? `$${formatMoney(Math.round(data.silverCopKg))}` : '—'}
+                            </span>
+                            <span style={secondaryText}>COP/kg</span>
+                        </div>
+                        <p style={{ ...secondaryText, marginTop: '4px' }}>{data.gold_date || data.gold_time}</p>
+                    </div>
+
+                    {/* Silver USD/oz */}
+                    <div className="glass-card" style={{ padding: '16px', borderRadius: '12px', borderTop: '2px solid rgba(180,180,210,0.3)' }}>
+                        <p style={labelCaps}>PLATA · USD</p>
+                        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginTop: '6px' }}>
+                            <span className="num" style={{ fontSize: '22px', fontWeight: 600, color: '#c0c8d8', letterSpacing: '-0.01em', fontFamily: 'var(--font-inter), Inter, sans-serif' }}>
+                                {data.silverUsdOz > 0 ? `$${formatMoney(data.silverUsdOz.toFixed(2))}` : '—'}
+                            </span>
+                            <span style={secondaryText}>USD/oz</span>
+                        </div>
+                        <p style={{ ...secondaryText, marginTop: '4px' }}>{data.gold_date || data.gold_time}</p>
+                    </div>
+                </div>
+
+                {/* TRM */}
+                <div className="glass-card" style={{ padding: '14px 16px', borderRadius: '12px', borderTop: '2px solid rgba(242,202,80,0.2)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <p style={labelCaps}>{isError ? 'INGRESE TRM ▼' : 'TRM Banco de Bogotá'}</p>
+                        <span style={secondaryText}>COP/USD</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginTop: '4px' }}>
+                        {isError ? (
+                            <input
+                                type="number"
+                                value={data.dolar}
+                                autoComplete="off"
+                                placeholder="4333"
+                                onChange={e => {
+                                    const nowData = { ...data, dolar: Number(e.target.value || 0) };
+                                    setData(nowData);
+                                    localStorage.setItem('dolar', e.target.value || defaultDolar);
+                                }}
+                                style={{
+                                    background: 'transparent', border: 'none',
+                                    borderBottom: '1px solid #f2ca50', color: '#f2ca50',
+                                    fontSize: '22px', fontWeight: 600, width: '160px',
+                                    outline: 'none', fontFamily: 'var(--font-inter), Inter, sans-serif',
+                                }}
+                            />
+                        ) : (
+                            <span className="num" style={{ fontSize: '22px', fontWeight: 600, color: '#54e98a', letterSpacing: '-0.01em', fontFamily: 'var(--font-inter), Inter, sans-serif', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                {image && <img src={`https://pbit.bancodebogota.com${image}`} alt="" style={{ width: 10, height: 10 }} />}
+                                {formatMoney(data.dolar)}
+                            </span>
+                        )}
+                        <span style={{ ...secondaryText, fontSize: '10px' }}>{data.dolar_date || data.dolar_time}</span>
                     </div>
                 </div>
 
                 {/* Price matrix — captured for screenshot */}
                 <div ref={captureRef} className="glass-card" style={{ borderRadius: '12px', overflow: 'hidden', backgroundColor: '#131313' }}>
-                    <div style={{ padding: '14px 16px', borderBottom: '1px solid rgba(77,70,53,0.2)', background: 'rgba(28,27,27,0.5)' }}>
-                        <h2 style={{
-                            fontFamily: 'var(--font-playfair), "Playfair Display", serif',
-                            fontSize: '18px', fontWeight: 500, color: '#f2ca50', margin: 0,
-                        }}>
-                            Matriz de Precios
-                        </h2>
-                    </div>
+                    {/*<div style={{ padding: '14px 16px', borderBottom: '1px solid rgba(77,70,53,0.2)', background: 'rgba(28,27,27,0.5)' }}>*/}
+                    {/*    <h2 style={{*/}
+                    {/*        fontFamily: 'var(--font-playfair), "Playfair Display", serif',*/}
+                    {/*        fontSize: '18px', fontWeight: 500, color: '#f2ca50', margin: 0,*/}
+                    {/*    }}>*/}
+                    {/*        Matriz de Precios*/}
+                    {/*    </h2>*/}
+                    {/*</div>*/}
 
                     {isMobile ? (
                         /* Mobile: single column table */

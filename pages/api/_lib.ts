@@ -3,27 +3,43 @@ import { chromium } from 'playwright';
 export const TTL = 60_000;
 const SOFT_TTL = 45_000;
 
-// ---- Gold (REST API — data-asg.goldprice.org) ----
-let goldCache: { xauCop: number; fecha: string | null; ts: number } | null = null;
-let goldRefreshing = false;
-
-async function _fetchGold(): Promise<{ xauCop: number; fecha: string | null }> {
-    const response = await fetch('https://data-asg.goldprice.org/dbXRates/COP', {
-        headers: {
-            'accept': '*/*',
-            'origin': 'https://goldprice.org',
-            'referer': 'https://goldprice.org/',
-            'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36',
-        },
-    });
-    if (!response.ok) throw new Error(`Gold API error: ${response.status}`);
-    const data = await response.json();
-    const item =  {xauPrice:Number((data.items[0]['xauPrice'] / 31.1034768).toFixed(2))}
-    if (!item) throw new Error('No gold data in response');
-    return { xauCop: item.xauPrice, fecha: data.date || null };
+// ---- Metals (REST API — data-asg.goldprice.org) ----
+interface MetalsData {
+    xauCop: number;      // Gold COP/gram
+    xagCopKg: number;    // Silver COP/kg
+    goldUsdOz: number;   // Gold USD/oz
+    silverUsdOz: number; // Silver USD/oz
+    fecha: string | null;
 }
 
-export async function getOrFetchGold(): Promise<{ xauCop: number; fecha: string | null }> {
+let goldCache: (MetalsData & { ts: number }) | null = null;
+let goldRefreshing = false;
+
+const METALS_HEADERS = {
+    'accept': '*/*',
+    'origin': 'https://goldprice.org',
+    'referer': 'https://goldprice.org/',
+    'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36',
+};
+
+async function _fetchGold(): Promise<MetalsData> {
+    const [copRes, usdRes] = await Promise.all([
+        fetch('https://data-asg.goldprice.org/dbXRates/COP', { headers: METALS_HEADERS }),
+        fetch('https://data-asg.goldprice.org/dbXRates/USD', { headers: METALS_HEADERS }),
+    ]);
+    if (!copRes.ok) throw new Error(`Gold API COP error: ${copRes.status}`);
+    if (!usdRes.ok) throw new Error(`Gold API USD error: ${usdRes.status}`);
+    const [cop, usd] = await Promise.all([copRes.json(), usdRes.json()]);
+    return {
+        xauCop:      Number((cop.items[0].xauPrice / 31.1034768).toFixed(2)),
+        xagCopKg:    Number((cop.items[0].xagPrice / 31.1034768 * 1000).toFixed(2)),
+        goldUsdOz:   Number(usd.items[0].xauPrice.toFixed(2)),
+        silverUsdOz: Number(usd.items[0].xagPrice.toFixed(2)),
+        fecha:       cop.date || null,
+    };
+}
+
+export async function getOrFetchGold(): Promise<MetalsData> {
     if (goldCache && Date.now() - goldCache.ts < TTL) {
         if (Date.now() - goldCache.ts > SOFT_TTL && !goldRefreshing) {
             goldRefreshing = true;
@@ -32,15 +48,19 @@ export async function getOrFetchGold(): Promise<{ xauCop: number; fecha: string 
                 .catch(() => {})
                 .finally(() => { goldRefreshing = false; });
         }
-        return { xauCop: goldCache.xauCop, fecha: goldCache.fecha };
+        const { ts: _ts, ...rest } = goldCache;
+        return rest;
     }
     const data = await _fetchGold();
     goldCache = { ...data, ts: Date.now() };
     return data;
 }
 
-export function getGoldFromCache(): { xauCop: number; fecha: string | null } | null {
-    if (goldCache) return { xauCop: goldCache.xauCop, fecha: goldCache.fecha };
+export function getGoldFromCache(): MetalsData | null {
+    if (goldCache) {
+        const { ts: _ts, ...rest } = goldCache;
+        return rest;
+    }
     return null;
 }
 
