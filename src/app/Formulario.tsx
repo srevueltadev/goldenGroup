@@ -31,6 +31,10 @@ export interface DataType {
 }
 
 const defaultForm: FormType[] = [
+    { A: "", B: 0, C: "89.0%" },
+    { A: "", B: 0, C: "89.5%" },
+    { A: "", B: 0, C: "90.0%" },
+    { A: "", B: 0, C: "90.5%" },
     { A: "", B: 0, C: "91.0%" },
     { A: "", B: 0, C: "91.1%" },
     { A: "", B: 0, C: "91.2%" },
@@ -415,7 +419,7 @@ export default function Formulario() {
                 <div className={"parent-card"} style={{ display: 'flex', flexWrap:"wrap",alignItems: 'center',justifyContent:'space-evenly', gap: '12px' }}>
                     {/* Gold COP/g */}
                     <div className="glass-card" style={{ padding: '16px', borderRadius: '12px', borderTop: '2px solid rgba(242,202,80,0.3)' }}>
-                        <p style={labelCaps}>ORO · COP</p>
+                        <p style={labelCaps}>GoldPrice GRAMO</p>
                         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginTop: '6px' }}>
                             <span className="num" style={{ fontSize: '22px', fontWeight: 600, color: '#f2ca50', letterSpacing: '-0.01em', fontFamily: 'var(--font-inter), Inter, sans-serif' }}>
                                 {data.gold > 0 ? `$${formatMoney(Math.round(data.gold))}` : '—'}
@@ -427,7 +431,7 @@ export default function Formulario() {
 
                     {/* Gold USD/oz */}
                     <div className="glass-card" style={{ padding: '16px', borderRadius: '12px', borderTop: '2px solid rgba(242,202,80,0.3)' }}>
-                        <p style={labelCaps}>ORO · USD</p>
+                        <p style={labelCaps}>GoldPrice onza</p>
                         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginTop: '6px' }}>
                             <span className="num" style={{ fontSize: '22px', fontWeight: 600, color: '#f2ca50', letterSpacing: '-0.01em', fontFamily: 'var(--font-inter), Inter, sans-serif' }}>
                                 {data.goldUsdOz > 0 ? `$${formatMoney(data.goldUsdOz.toFixed(2))}` : '—'}
@@ -439,7 +443,7 @@ export default function Formulario() {
 
                     {/* Silver COP/kg */}
                     <div className="glass-card" style={{ padding: '16px', borderRadius: '12px', borderTop: '2px solid rgba(180,180,210,0.3)' }}>
-                        <p style={labelCaps}>PLATA · COP</p>
+                        <p style={labelCaps}>GoldPrice Kilo</p>
                         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginTop: '6px' }}>
                             <span className="num" style={{ fontSize: '22px', fontWeight: 600, color: '#c0c8d8', letterSpacing: '-0.01em', fontFamily: 'var(--font-inter), Inter, sans-serif' }}>
                                 {data.silverCopKg > 0 ? `$${formatMoney(Math.round(data.silverCopKg))}` : '—'}
@@ -451,7 +455,7 @@ export default function Formulario() {
 
                     {/* Silver USD/oz */}
                     <div className="glass-card" style={{ padding: '16px', borderRadius: '12px', borderTop: '2px solid rgba(180,180,210,0.3)' }}>
-                        <p style={labelCaps}>PLATA · USD</p>
+                        <p style={labelCaps}>GoldPrice onza</p>
                         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginTop: '6px' }}>
                             <span className="num" style={{ fontSize: '22px', fontWeight: 600, color: '#c0c8d8', letterSpacing: '-0.01em', fontFamily: 'var(--font-inter), Inter, sans-serif' }}>
                                 {data.silverUsdOz > 0 ? `$${formatMoney(data.silverUsdOz.toFixed(2))}` : '—'}
@@ -465,7 +469,7 @@ export default function Formulario() {
                 {/* TRM */}
                 <div className="glass-card" style={{ padding: '14px 16px', borderRadius: '12px', borderTop: '2px solid rgba(242,202,80,0.2)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <p style={labelCaps}>{isError ? 'INGRESE TRM ▼' : 'TRM Banco de Bogotá'}</p>
+                        <p style={labelCaps}>{isError ? 'TRM Banco de Bogotá ▼' : 'TRM Banco de Bogotá'}</p>
                         <span style={secondaryText}>COP/USD</span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginTop: '4px' }}>
@@ -482,7 +486,7 @@ export default function Formulario() {
                                 }}
                                 style={{
                                     background: 'transparent', border: 'none',
-                                    borderBottom: '1px solid #f2ca50', color: '#f2ca50',
+                                    borderBottom: '1px solid #f2ca50', color: '#54e98a',
                                     fontSize: '22px', fontWeight: 600, width: '160px',
                                     outline: 'none', fontFamily: 'var(--font-inter), Inter, sans-serif',
                                 }}
@@ -542,7 +546,7 @@ export default function Formulario() {
                 </div>
 
                 <p style={{ textAlign: 'center', color: '#4d4635', fontSize: '10px', letterSpacing: '0.1em', fontFamily: 'var(--font-inter), Inter, sans-serif' }}>
-                    v1.2 · B&B GOLDSILVER
+                    v1.3 · B&B GOLDSILVER
                 </p>
             </main>
 
