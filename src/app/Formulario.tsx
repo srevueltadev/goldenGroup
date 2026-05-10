@@ -406,13 +406,13 @@ export default function Formulario() {
 
             <main style={{
                 marginTop: '60px', padding: '16px 20px',
-                maxWidth: '900px', marginLeft: 'auto', marginRight: 'auto',
+                maxWidth: '1000px', marginLeft: 'auto', marginRight: 'auto',
                 display: 'flex', flexDirection: 'column', gap: '12px',
                 position: 'relative', zIndex: 1,
             }}>
 
                 {/* Metals price cards — 2×2 grid */}
-                <div style={{ display: 'grid', gridTemplateColumns: isMobile?"1fr": '1fr 1fr', gap: '12px' }}>
+                <div className={"parent-card"} style={{ display: 'flex', flexWrap:"wrap",alignItems: 'center',justifyContent:'space-evenly', gap: '12px' }}>
                     {/* Gold COP/g */}
                     <div className="glass-card" style={{ padding: '16px', borderRadius: '12px', borderTop: '2px solid rgba(242,202,80,0.3)' }}>
                         <p style={labelCaps}>ORO · COP</p>
