@@ -78,8 +78,26 @@ body {
 }
 
 @media (max-width: 600px) {
+  header{
+    /*flex-direction: column;*/
+    /*height: 80px !important;*/
+    /*justify-content: space-around !important;*/
+    div img{
+      width: 140px !important;
+    }
+  }
+  .logomovile{
+    width: 85% !important;
+    height: 120px !important;
+  }
+  main{
+    margin-top: 90px !important;
+  }
   .glass-card {
     width: 100%;
+    :last-child{
+      font-size: 15px;
+    }
   }
 }
 

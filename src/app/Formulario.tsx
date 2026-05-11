@@ -65,6 +65,8 @@ const defaultForm: FormType[] = [
     { A: "", B: 0, C: "98.5%" },
     { A: "", B: 0, C: "99.0%" },
     { A: "", B: 0, C: "99.5%" },
+    { A: "", B: 0, C: "0" },
+    { A: "", B: 0, C: "0" },
     { A: "", B: 0, C: "", factorEditable: true },
 ];
 
@@ -79,9 +81,11 @@ export default function Formulario() {
         dolar: 0, dolar_time: dateNow, dolar_date: "",
     };
     let defaultwindow = false;
+    let defaultTV = false;
 
     if (typeof window !== "undefined") {
         defaultwindow = window.innerWidth <= 768;
+        defaultTV = window.innerWidth >= 1900;
         const saved = localStorage.getItem('data');
         if (saved) DataDefault = JSON.parse(saved);
     }
@@ -91,6 +95,7 @@ export default function Formulario() {
     const [isError, setIsError] = useState(false);
     const [image, setImage] = useState<string | null>(null);
     const [isMobile, setIsMobile] = useState(defaultwindow);
+    const [isTV, setIsTV] = useState(defaultTV);
     const [countdown, setCountdown] = useState(0);
     const [isSyncing, setIsSyncing] = useState(false);
 
@@ -114,11 +119,10 @@ export default function Formulario() {
         }
     };
 
-    // Formula: (xauCop / 31.1034768) * 1000 * purity%
-    // xauCop = COP/oz from goldprice.org, no TRM needed
     const calculos = useCallback((nowData: DataType) => {
         setData({ ...nowData });
-        const multi = nowData.gold //(nowData.gold / FIX) * 1000;
+        const bbgt = nowData.dolar
+        const multi = (bbgt * nowData.goldUsdOz) / 31.1034768;
         setDataForm(prev => {
             const next = prev.map(row => {
                 const pct = Number(String(row.C).replace('%', ''));
@@ -218,7 +222,10 @@ export default function Formulario() {
     }, []);
 
     useEffect(() => {
-        const handleResize = () => setIsMobile(window.innerWidth <= 768);
+        const handleResize = () => {
+            setIsMobile(window.innerWidth <= 768);
+            setIsTV(window.innerWidth >= 1400);
+        };
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
     }, []);
@@ -269,20 +276,37 @@ export default function Formulario() {
         fontFamily: 'var(--font-inter), Inter, sans-serif', margin: 0,
     };
 
-    // Split form rows for 2-column desktop layout
+    // Split form rows for 2 or 3-column layout
     // Last row (editable) spans full width
     const fixedRows = dataForm.slice(0, dataForm.length - 1);
     const editableRow = dataForm[dataForm.length - 1];
+    const third = Math.ceil(fixedRows.length / 3);
     const half = Math.ceil(fixedRows.length / 2);
-    const col1 = fixedRows.slice(0, half);
-    const col2 = fixedRows.slice(half);
+    const col1 = isTV ? fixedRows.slice(0, third) : fixedRows.slice(0, half);
+    const col2 = isTV ? fixedRows.slice(third, third * 2) : fixedRows.slice(half);
+    const col3 = isTV ? fixedRows.slice(third * 2) : [];
 
-    const tableRow = (row: FormType, i: number, isEditable = false) => (
+    const ROW_ACCENT_COLORS = [
+        '#f2ca50',  // primary / gold
+        '#54e98a',  // tertiary / emerald
+        '#d4af37',  // primary-container / deep gold
+        '#c8c6c5',  // secondary / silver
+        '#e9c349',  // primary-fixed-dim
+        '#4ae183',  // tertiary-fixed-dim
+        '#ffe088',  // primary-fixed
+        '#2ecc71',  // tertiary-container
+        '#b8a040',  // muted gold
+        '#6bfe9c',  // tertiary-fixed
+    ];
+
+    const tableRow = (row: FormType, i: number, isEditable = false) => {
+        const accentColor = isEditable ? '#f2ca50' : ROW_ACCENT_COLORS[i % ROW_ACCENT_COLORS.length];
+        return (
         <tr
             key={i}
             style={{
-                borderTop: '1px solid rgba(77,70,53,0.15)',
-                background: isEditable ? 'rgba(242,202,80,0.03)' : 'transparent',
+                borderTop: `1px solid ${accentColor}40`,
+                background: 'transparent',
                 transition: 'background 0.15s',
             }}
             onMouseEnter={e => { if (!isEditable) (e.currentTarget as HTMLElement).style.background = 'rgba(53,53,52,0.3)'; }}
@@ -327,7 +351,8 @@ export default function Formulario() {
                 </span>
             </td>
         </tr>
-    );
+        );
+    };
 
     const tableHead = (
         <thead>
@@ -349,6 +374,8 @@ export default function Formulario() {
                 input[type=number] { -moz-appearance: textfield; }
                 .matrix-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: rgba(77,70,53,0.15); }
                 .matrix-grid table { background: #131313; }
+                .matrix-grid-3col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1px; background: rgba(77,70,53,0.15); }
+                .matrix-grid-3col table { background: #131313; }
                 @media (max-width: 768px) {
                     .matrix-grid { grid-template-columns: 1fr; }
                 }
@@ -361,20 +388,22 @@ export default function Formulario() {
                 WebkitBackdropFilter: 'blur(20px)',
                 borderBottom: '1px solid rgba(77,70,53,0.3)',
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                padding: '0 16px', height: '60px',
+                padding: '0 16px', height: '80px',
             }}>
+
+                <div></div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src="/icon.png" alt="logo" style={{ width: '32px', height: '32px', objectFit: 'contain' }} />
-                    <h1 style={{
-                        fontFamily: 'var(--font-playfair), "Playfair Display", serif',
-                        fontSize: '20px', fontWeight: 500,
-                        margin: 0, letterSpacing: '0.03em',
-                        background: 'linear-gradient(135deg, #b8860b 0%, #f2ca50 25%, #ffe87c 45%, #d4a017 60%, #f2ca50 75%, #a0720a 100%)',
-                        WebkitBackgroundClip: 'text',
-                        WebkitTextFillColor: 'transparent',
-                        backgroundClip: 'text',
-                    }}>B&B <span style={{ fontWeight: 700 }}>GOLD</span>SILVER</h1>
+                    <img src="/icon.png" alt="logo" style={{ width: '180px',objectFit: 'cover' }} />
+                    {/*<h1 style={{*/}
+                    {/*    fontFamily: 'var(--font-playfair), "Playfair Display", serif',*/}
+                    {/*    fontSize: '20px', fontWeight: 500,*/}
+                    {/*    margin: 0, letterSpacing: '0.03em',*/}
+                    {/*    background: 'linear-gradient(135deg, #b8860b 0%, #f2ca50 25%, #ffe87c 45%, #d4a017 60%, #f2ca50 75%, #a0720a 100%)',*/}
+                    {/*    WebkitBackgroundClip: 'text',*/}
+                    {/*    WebkitTextFillColor: 'transparent',*/}
+                    {/*    backgroundClip: 'text',*/}
+                    {/*}}>B&B <span style={{ fontWeight: 700 }}>GOLD</span>SILVER</h1>*/}
                 </div>
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                     {/* Status pill */}
@@ -409,8 +438,8 @@ export default function Formulario() {
             </div>
 
             <main style={{
-                marginTop: '60px', padding: '16px 20px',
-                maxWidth: '1000px', marginLeft: 'auto', marginRight: 'auto',
+                marginTop: '70px', padding: '16px 20px',
+                maxWidth: defaultTV?'1500px':'1000px', marginLeft: 'auto', marginRight: 'auto',
                 display: 'flex', flexDirection: 'column', gap: '12px',
                 position: 'relative', zIndex: 1,
             }}>
@@ -523,7 +552,7 @@ export default function Formulario() {
                             </tbody>
                         </table>
                     ) : (
-                        /* Desktop: two tables side by side + editable row spanning full width */
+                        /* Desktop: two or three tables side by side + editable row spanning full width */
                         <>
                             {/* Editable row full width */}
                             <div style={{ borderTop: '1px solid rgba(242,202,80,0.2)', background: 'rgba(242,202,80,0.03)' }}>
@@ -531,15 +560,21 @@ export default function Formulario() {
                                     <tbody>{tableRow(editableRow, dataForm.length - 1, true)}</tbody>
                                 </table>
                             </div>
-                            <div className="matrix-grid">
+                            <div className={isTV ? 'matrix-grid-3col' : 'matrix-grid'}>
                                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                                     {tableHead}
                                     <tbody>{col1.map((row, i) => tableRow(row, i))}</tbody>
                                 </table>
                                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                                     {tableHead}
-                                    <tbody>{col2.map((row, i) => tableRow(row, i + half))}</tbody>
+                                    <tbody>{col2.map((row, i) => tableRow(row, i + col1.length))}</tbody>
                                 </table>
+                                {isTV && (
+                                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                        {tableHead}
+                                        <tbody>{col3.map((row, i) => tableRow(row, i + col1.length + col2.length))}</tbody>
+                                    </table>
+                                )}
                             </div>
                         </>
                     )}
@@ -569,7 +604,7 @@ export default function Formulario() {
                 onMouseUp={e => (e.currentTarget.style.transform = 'scale(1.08)')}
                 title={isMobile ? "Compartir tabla" : "Copiar pantallazo"}
             >
-                {isMobile ? '↑' : '⎘'}
+                {isMobile ? '➤' : '⎘'}
             </button>
         </>
     );

@@ -58,27 +58,19 @@ export default function Login({ onLoginSuccessAction }: LoginProps) {
                 <div style={{ textAlign: 'center', marginBottom: '32px' }}>
                     <div style={{ marginBottom: '12px' }}>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src="/icon.png" alt="logo" style={{ width: '80px', height: '80px', objectFit: 'contain' }} />
+                        <img className={'logomovile'} src="/icon.png" alt="logo" style={{ width: '250px', height: '100px', objectFit: 'cover' }} />
                     </div>
-                    <h1 style={{
-                        fontFamily: 'var(--font-playfair), "Playfair Display", serif',
-                        fontSize: '48px', fontWeight: 700, lineHeight: 1.1,
-                        letterSpacing: '-0.02em', margin: 0,
-                        background: 'linear-gradient(135deg, #b8860b 0%, #f2ca50 25%, #ffe87c 45%, #d4a017 60%, #f2ca50 75%, #a0720a 100%)',
-                        WebkitBackgroundClip: 'text',
-                        WebkitTextFillColor: 'transparent',
-                        backgroundClip: 'text',
-                    }}>
-                        B&B <span style={{ fontWeight: 900 }}>GOLD</span>SILVER
-                    </h1>
-                    <p style={{
-                        fontFamily: 'var(--font-inter), Inter, sans-serif',
-                        fontSize: '12px', fontWeight: 600, letterSpacing: '0.1em',
-                        textTransform: 'uppercase', color: '#99907c',
-                        marginTop: '8px', opacity: 0.8,
-                    }}>
-                        Institutional Wealth Management
-                    </p>
+                    {/*<h1 style={{*/}
+                    {/*    fontFamily: 'var(--font-playfair), "Playfair Display", serif',*/}
+                    {/*    fontSize: '48px', fontWeight: 700, lineHeight: 1.1,*/}
+                    {/*    letterSpacing: '-0.02em', margin: 0,*/}
+                    {/*    background: 'linear-gradient(135deg, #b8860b 0%, #f2ca50 25%, #ffe87c 45%, #d4a017 60%, #f2ca50 75%, #a0720a 100%)',*/}
+                    {/*    WebkitBackgroundClip: 'text',*/}
+                    {/*    WebkitTextFillColor: 'transparent',*/}
+                    {/*    backgroundClip: 'text',*/}
+                    {/*}}>*/}
+                    {/*    B&B <span style={{ fontWeight: 900 }}>GOLD</span>SILVER*/}
+                    {/*</h1>*/}
                 </div>
 
                 {/* Card */}
