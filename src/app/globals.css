@@ -77,11 +77,15 @@ body {
   }
 }
 
+
 @media (max-width: 600px) {
   header{
     /*flex-direction: column;*/
     /*height: 80px !important;*/
     /*justify-content: space-around !important;*/
+    .header-logo{
+      transform: translateX(-140%) !important;
+    }
     div img{
       width: 140px !important;
     }

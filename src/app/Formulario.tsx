@@ -131,7 +131,7 @@ export default function Formulario() {
             saveIfChanged('dataForm', next);
             return next;
         });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
     }, []);
 
     useEffect(() => {
@@ -391,19 +391,10 @@ export default function Formulario() {
                 padding: '0 16px', height: '80px',
             }}>
 
-                <div></div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div className="header-spacer"></div>
+                <div className="header-logo" style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', display: 'flex', alignItems: 'center', zIndex: 0 }}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src="/icon.png" alt="logo" style={{ width: '180px',objectFit: 'cover' }} />
-                    {/*<h1 style={{*/}
-                    {/*    fontFamily: 'var(--font-playfair), "Playfair Display", serif',*/}
-                    {/*    fontSize: '20px', fontWeight: 500,*/}
-                    {/*    margin: 0, letterSpacing: '0.03em',*/}
-                    {/*    background: 'linear-gradient(135deg, #b8860b 0%, #f2ca50 25%, #ffe87c 45%, #d4a017 60%, #f2ca50 75%, #a0720a 100%)',*/}
-                    {/*    WebkitBackgroundClip: 'text',*/}
-                    {/*    WebkitTextFillColor: 'transparent',*/}
-                    {/*    backgroundClip: 'text',*/}
-                    {/*}}>B&B <span style={{ fontWeight: 700 }}>GOLD</span>SILVER</h1>*/}
+                    <img src="/icon.png" alt="logo" style={{ width: '180px', objectFit: 'cover' }} />
                 </div>
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                     {/* Status pill */}
