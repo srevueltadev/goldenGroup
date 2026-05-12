@@ -71,7 +71,6 @@ const defaultForm: FormType[] = [
 ];
 
 const BASE_INTERVAL = 15_000;
-const MAX_INTERVAL = 60_000;
 
 export default function Formulario() {
     const dateNow = new Date().toLocaleTimeString();
@@ -144,45 +143,59 @@ export default function Formulario() {
             const ctrl = new AbortController();
             abortRef.current = ctrl;
             setIsSyncing(true);
-            try {
-                const { gold, usd: banco } = await api.getData(ctrl.signal);
 
-                const nowData: DataType = {
-                    gold:         gold.xauCop      || DataDefault.gold,
-                    goldUsdOz:    gold.goldUsdOz   || DataDefault.goldUsdOz,
-                    silverCopKg:  gold.xagCopKg    || DataDefault.silverCopKg,
-                    silverUsdOz:  gold.silverUsdOz || DataDefault.silverUsdOz,
-                    gold_date: gold.time,
-                    gold_time: new Date().toLocaleTimeString(),
-                    dolar: banco.mid || DataDefault.dolar,
-                    dolar_date: banco.time,
-                    dolar_time: new Date().toLocaleTimeString(),
-                };
-
-                setImage(banco.image ? banco.image.replace('..', '') : null);
-
+            // USD fetch runs in background — does not block gold display
+            api.bancodebogota(ctrl.signal).then(banco => {
+                if (stopped || ctrl.signal.aborted) return;
+                const current = lastDataRef.current || DataDefault;
                 if (banco.mid === 0) {
                     const saved = typeof window !== 'undefined' ? Number(localStorage.getItem('dolar') || defaultDolar) : 0;
-                    nowData.dolar = saved;
+                    const nowData = { ...current, dolar: saved, dolar_time: new Date().toLocaleTimeString() };
+                    lastDataRef.current = nowData;
+                    calculos(nowData);
                     setIsError(true);
                 } else {
                     setIsError(false);
                     if (typeof window !== 'undefined') localStorage.setItem('dolar', String(banco.mid));
-                }
-
-                const before = JSON.stringify(lastDataRef.current);
-                const after = JSON.stringify(nowData);
-                if (before !== after) {
+                    setImage(banco.image ? banco.image.replace('..', '') : null);
+                    const nowData = { ...current, dolar: banco.mid, dolar_date: banco.time, dolar_time: new Date().toLocaleTimeString() };
                     lastDataRef.current = nowData;
                     saveIfChanged('data', nowData);
                     calculos(nowData);
-                    intervalRef.current = BASE_INTERVAL;
-                } else {
-                    intervalRef.current = Math.min(MAX_INTERVAL, intervalRef.current * 2);
+                }
+            }).catch(() => {});
+
+            try {
+                // Gold uses REST API — resolves in <1s
+                const gold = await api.netData(ctrl.signal);
+
+                if (gold.xauCop > 0) {
+                    const current = lastDataRef.current || DataDefault;
+                    const nowData: DataType = {
+                        gold:        gold.xauCop,
+                        goldUsdOz:   gold.goldUsdOz   || current.goldUsdOz,
+                        silverCopKg: gold.xagCopKg    || current.silverCopKg,
+                        silverUsdOz: gold.silverUsdOz || current.silverUsdOz,
+                        gold_date:   gold.time,
+                        gold_time:   new Date().toLocaleTimeString(),
+                        dolar:       current.dolar,
+                        dolar_date:  current.dolar_date,
+                        dolar_time:  current.dolar_time,
+                    };
+                    const before = JSON.stringify(lastDataRef.current);
+                    const after  = JSON.stringify(nowData);
+                    if (before !== after) {
+                        lastDataRef.current = nowData;
+                        saveIfChanged('data', nowData);
+                        calculos(nowData);
+                        intervalRef.current = BASE_INTERVAL;
+                    } else {
+                        intervalRef.current = BASE_INTERVAL;
+                    }
                 }
             } catch (e: unknown) {
                 if ((e as Error)?.name !== 'AbortError') {
-                    intervalRef.current = Math.min(MAX_INTERVAL, intervalRef.current * 2);
+                    intervalRef.current = BASE_INTERVAL;
                 }
             } finally {
                 setIsSyncing(false);

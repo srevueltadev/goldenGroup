@@ -61,13 +61,16 @@ const api = {
     },
 
     netData: async (signal?: AbortSignal) => {
-        const result = { xauCop: 0, time: '' };
+        const result = { xauCop: 0, xagCopKg: 0, goldUsdOz: 0, silverUsdOz: 0, time: '' };
         try {
             const response = await fetch('/api/getNetData', { signal, headers: getAuthHeaders() });
             const data = await response.json();
             if (data.xauCop) {
-                result.xauCop = Number(data.xauCop);
-                result.time = data.fecha || '';
+                result.xauCop      = Number(data.xauCop);
+                result.xagCopKg    = Number(data.xagCopKg   || 0);
+                result.goldUsdOz   = Number(data.goldUsdOz  || 0);
+                result.silverUsdOz = Number(data.silverUsdOz || 0);
+                result.time        = data.fecha || '';
             }
             return result;
         } catch {

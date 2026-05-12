@@ -1,7 +1,9 @@
 import { chromium } from 'playwright';
 
-export const TTL = 60_000;
-const SOFT_TTL = 45_000;
+const GOLD_TTL      = 10_000;
+const GOLD_SOFT_TTL = 5_000;
+export const TTL    = 60_000;   // USD cache (Playwright — expensive)
+const SOFT_TTL      = 45_000;
 
 // ---- Metals (REST API — data-asg.goldprice.org) ----
 interface MetalsData {
@@ -14,6 +16,7 @@ interface MetalsData {
 
 let goldCache: (MetalsData & { ts: number }) | null = null;
 let goldRefreshing = false;
+let goldPending: Promise<MetalsData> | null = null;
 
 const METALS_HEADERS = {
     'accept': '*/*',
@@ -35,13 +38,13 @@ async function _fetchGold(): Promise<MetalsData> {
         xagCopKg:    Number((cop.items[0].xagPrice / 31.1034768 * 1000).toFixed(2)),
         goldUsdOz:   Number(usd.items[0].xauPrice.toFixed(2)),
         silverUsdOz: Number(usd.items[0].xagPrice.toFixed(2)),
-        fecha:       cop.date || null,
+        fecha:       new Date().toLocaleTimeString('es-CO'),
     };
 }
 
 export async function getOrFetchGold(): Promise<MetalsData> {
-    if (goldCache && Date.now() - goldCache.ts < TTL) {
-        if (Date.now() - goldCache.ts > SOFT_TTL && !goldRefreshing) {
+    if (goldCache && Date.now() - goldCache.ts < GOLD_TTL) {
+        if (Date.now() - goldCache.ts > GOLD_SOFT_TTL && !goldRefreshing) {
             goldRefreshing = true;
             _fetchGold()
                 .then(data => { goldCache = { ...data, ts: Date.now() }; })
@@ -52,9 +55,11 @@ export async function getOrFetchGold(): Promise<MetalsData> {
         const { ts: _ts, ...rest } = goldCache;
         return rest;
     }
-    const data = await _fetchGold();
-    goldCache = { ...data, ts: Date.now() };
-    return data;
+    if (goldPending) return goldPending;
+    goldPending = _fetchGold()
+        .then(data => { goldCache = { ...data, ts: Date.now() }; return data; })
+        .finally(() => { goldPending = null; });
+    return goldPending;
 }
 
 export function getGoldFromCache(): MetalsData | null {
@@ -69,6 +74,7 @@ export function getGoldFromCache(): MetalsData | null {
 // ---- USD (Banco de Bogotá) ----
 let usdCache: { usd: string[]; image: string | null; fecha: string | null; ts: number } | null = null;
 let usdRefreshing = false;
+let usdPending: Promise<{ usd: string[]; image: string | null; fecha: string | null }> | null = null;
 
 async function _fetchUsd(): Promise<{ usd: string[]; image: string | null; fecha: string | null }> {
     const browser = await chromium.launch({ headless: true });
@@ -100,9 +106,11 @@ export async function getOrFetchUsd(): Promise<{ usd: string[]; image: string | 
         }
         return { usd: usdCache.usd, image: usdCache.image, fecha: usdCache.fecha };
     }
-    const data = await _fetchUsd();
-    usdCache = { ...data, ts: Date.now() };
-    return data;
+    if (usdPending) return usdPending;
+    usdPending = _fetchUsd()
+        .then(data => { usdCache = { ...data, ts: Date.now() }; return data; })
+        .finally(() => { usdPending = null; });
+    return usdPending;
 }
 
 export function getUsdFromCache(): { usd: string[]; image: string | null; fecha: string | null } | null {

@@ -7,7 +7,13 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     try {
         const data = await getOrFetchGold();
         res.setHeader('Cache-Control', 'public, max-age=30, s-maxage=60, stale-while-revalidate=300');
-        return res.status(200).json({ xauCop: data.xauCop, fecha: data.fecha });
+        return res.status(200).json({
+            xauCop:      data.xauCop,
+            xagCopKg:    data.xagCopKg,
+            goldUsdOz:   data.goldUsdOz,
+            silverUsdOz: data.silverUsdOz,
+            fecha:       data.fecha,
+        });
     } catch (error) {
         console.error('Error fetching Gold:', error);
         const stale = getGoldFromCache();
