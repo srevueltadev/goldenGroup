@@ -73,7 +73,7 @@ const defaultForm: FormType[] = [
 const BASE_INTERVAL = 15_000;
 
 export default function Formulario() {
-    const dateNow = new Date().toLocaleTimeString();
+    const dateNow = new Date().toLocaleTimeString('es-CO', { timeZone: 'America/Bogota' });
     let DataDefault: DataType = {
         gold: 0, goldUsdOz: 0, silverCopKg: 0, silverUsdOz: 0,
         gold_time: dateNow, gold_date: "",
@@ -150,7 +150,7 @@ export default function Formulario() {
                 const current = lastDataRef.current || DataDefault;
                 if (banco.mid === 0) {
                     const saved = typeof window !== 'undefined' ? Number(localStorage.getItem('dolar') || defaultDolar) : 0;
-                    const nowData = { ...current, dolar: saved, dolar_time: new Date().toLocaleTimeString() };
+                    const nowData = { ...current, dolar: saved, dolar_time: new Date().toLocaleTimeString('es-CO', { timeZone: 'America/Bogota' }) };
                     lastDataRef.current = nowData;
                     calculos(nowData);
                     setIsError(true);
@@ -158,7 +158,7 @@ export default function Formulario() {
                     setIsError(false);
                     if (typeof window !== 'undefined') localStorage.setItem('dolar', String(banco.mid));
                     setImage(banco.image ? banco.image.replace('..', '') : null);
-                    const nowData = { ...current, dolar: banco.mid, dolar_date: banco.time, dolar_time: new Date().toLocaleTimeString() };
+                    const nowData = { ...current, dolar: banco.mid, dolar_date: banco.time, dolar_time: new Date().toLocaleTimeString('es-CO', { timeZone: 'America/Bogota' }) };
                     lastDataRef.current = nowData;
                     saveIfChanged('data', nowData);
                     calculos(nowData);
@@ -177,7 +177,7 @@ export default function Formulario() {
                         silverCopKg: gold.xagCopKg    || current.silverCopKg,
                         silverUsdOz: gold.silverUsdOz || current.silverUsdOz,
                         gold_date:   gold.time,
-                        gold_time:   new Date().toLocaleTimeString(),
+                        gold_time:   new Date().toLocaleTimeString('es-CO', { timeZone: 'America/Bogota' }),
                         dolar:       current.dolar,
                         dolar_date:  current.dolar_date,
                         dolar_time:  current.dolar_time,
@@ -450,6 +450,17 @@ export default function Formulario() {
 
                 {/* Metals price cards — 2×2 grid */}
                 <div className={"parent-card"} style={{ display: 'flex', flexWrap:"wrap",alignItems: 'center',justifyContent:'space-evenly', gap: '12px' }}>
+                    {/* B&B USD/oz */}
+                    <div className="glass-card" style={{ padding: '16px', borderRadius: '12px', borderTop: '2px solid rgba(180,180,210,0.3)' }}>
+                        <p style={labelCaps}>PRECIO B&B</p>
+                        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginTop: '6px' }}>
+                               <span className="num" style={{ fontSize: '22px', fontWeight: 600, color: '#f2ca50', letterSpacing: '-0.01em', fontFamily: 'var(--font-inter), Inter, sans-serif' }}>
+                                {`$${formatMoney(((data.dolar * data.goldUsdOz) / 31.1034768).toFixed(2))}`}
+                            </span>
+                            <span style={secondaryText}>COP/oz</span>
+                        </div>
+                        <p style={{ ...secondaryText, marginTop: '4px' }}>{`(TRM*ONZA)/${31.1034768}`}</p>
+                    </div>
                     {/* Gold COP/g */}
                     <div className="glass-card" style={{ padding: '16px', borderRadius: '12px', borderTop: '2px solid rgba(242,202,80,0.3)' }}>
                         <p style={labelCaps}>GoldPrice GRAMO</p>

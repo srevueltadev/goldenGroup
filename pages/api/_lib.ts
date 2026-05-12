@@ -38,7 +38,7 @@ async function _fetchGold(): Promise<MetalsData> {
         xagCopKg:    Number((cop.items[0].xagPrice / 31.1034768 * 1000).toFixed(2)),
         goldUsdOz:   Number(usd.items[0].xauPrice.toFixed(2)),
         silverUsdOz: Number(usd.items[0].xagPrice.toFixed(2)),
-        fecha:       new Date().toLocaleTimeString('es-CO'),
+        fecha:       new Date().toLocaleTimeString('es-CO', { timeZone: 'America/Bogota' }),
     };
 }
 
