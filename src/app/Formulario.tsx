@@ -454,7 +454,7 @@ export default function Formulario() {
                     <div className="glass-card" style={{ padding: '16px', borderRadius: '12px', borderTop: '2px solid rgba(180,180,210,0.3)' }}>
                         <p style={labelCaps}>PRECIO B&B</p>
                         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginTop: '6px' }}>
-                               <span className="num" style={{ fontSize: '22px', fontWeight: 600, color: '#f2ca50', letterSpacing: '-0.01em', fontFamily: 'var(--font-inter), Inter, sans-serif' }}>
+                               <span className="num" style={{ fontSize: '22px', fontWeight: 600, color: '#54e98a', letterSpacing: '-0.01em', fontFamily: 'var(--font-inter), Inter, sans-serif' }}>
                                 {`$${formatMoney(((data.dolar * data.goldUsdOz) / 31.1034768).toFixed(2))}`}
                             </span>
                             <span style={secondaryText}>COP/oz</span>
