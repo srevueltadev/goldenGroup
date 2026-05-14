@@ -3,6 +3,9 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import api from "@/app/api";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import PriceCharts from "@/app/PriceCharts";
+import { addDoc, collection, serverTimestamp, getDocs, orderBy, query, limit } from "firebase/firestore";
+import { db } from "@/app/firebase";
 
 function formatMoney(value: number | string) {
     if (isNaN(Number(value)) || value === "") return value;
@@ -97,13 +100,45 @@ export default function Formulario() {
     const [isTV, setIsTV] = useState(defaultTV);
     const [countdown, setCountdown] = useState(0);
     const [isSyncing, setIsSyncing] = useState(false);
+    const [debugLogs, setDebugLogs] = useState<string[]>([]);
+    const [showDebug, setShowDebug] = useState(false);
+
+    const dbg = (msg: string) => {
+        const t = new Date().toLocaleTimeString('es-CO', { timeZone: 'America/Bogota' });
+        setDebugLogs(prev => [`[${t}] ${msg}`, ...prev].slice(0, 30));
+    };
+    const [calcTime, setCalcTime] = useState("");
 
     const abortRef = useRef<AbortController | null>(null);
     const intervalRef = useRef(BASE_INTERVAL);
     const lastDataRef = useRef<DataType | null>(null);
     const lastSaveRef = useRef(0);
+    const lastFirebaseSaveRef = useRef(0);
     const nextExecutionRef = useRef(Date.now() + BASE_INTERVAL);
     const captureRef = useRef<HTMLDivElement | null>(null);
+    const isTVRef = useRef(defaultTV);
+
+    const saveToFirebase = useCallback(async (nowData: DataType) => {
+        if (nowData.gold <= 0 || nowData.goldUsdOz <= 0) return;
+        const now = Date.now();
+        if (now - lastFirebaseSaveRef.current < 60_000) return; // max 1 write/minute
+        lastFirebaseSaveRef.current = now;
+        try {
+            await addDoc(collection(db, "priceHistory"), {
+                timestamp: serverTimestamp(),
+                gold: nowData.gold,
+                goldUsdOz: nowData.goldUsdOz,
+                silverCopKg: nowData.silverCopKg,
+                silverUsdOz: nowData.silverUsdOz,
+                trmGoldOz: nowData.dolar > 0 ? (nowData.dolar * nowData.goldUsdOz) / 31.1034768 : 0,
+                dolar: nowData.dolar,
+            });
+        } catch (e) {
+            const msg = e instanceof Error ? e.message : String(e);
+            toast.error(`Firebase: ${msg}`, { toastId: 'fb-error', autoClose: 5000 });
+            console.error('Firebase save error:', e);
+        }
+    }, []);
 
     const defaultDolar = "4333.00";
 
@@ -120,6 +155,7 @@ export default function Formulario() {
 
     const calculos = useCallback((nowData: DataType) => {
         setData({ ...nowData });
+        setCalcTime(new Date().toLocaleString('es-CO', { timeZone: 'America/Bogota', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }));
         const bbgt = nowData.dolar
         const multi = (bbgt * nowData.goldUsdOz) / 31.1034768;
         setDataForm(prev => {
@@ -145,25 +181,71 @@ export default function Formulario() {
             setIsSyncing(true);
 
             // USD fetch runs in background — does not block gold display
-            api.bancodebogota(ctrl.signal).then(banco => {
-                if (stopped || ctrl.signal.aborted) return;
-                const current = lastDataRef.current || DataDefault;
-                if (banco.mid === 0) {
-                    const saved = typeof window !== 'undefined' ? Number(localStorage.getItem('dolar') || defaultDolar) : 0;
-                    const nowData = { ...current, dolar: saved, dolar_time: new Date().toLocaleTimeString('es-CO', { timeZone: 'America/Bogota' }) };
-                    lastDataRef.current = nowData;
-                    calculos(nowData);
-                    setIsError(true);
-                } else {
-                    setIsError(false);
-                    if (typeof window !== 'undefined') localStorage.setItem('dolar', String(banco.mid));
-                    setImage(banco.image ? banco.image.replace('..', '') : null);
-                    const nowData = { ...current, dolar: banco.mid, dolar_date: banco.time, dolar_time: new Date().toLocaleTimeString('es-CO', { timeZone: 'America/Bogota' }) };
-                    lastDataRef.current = nowData;
-                    saveIfChanged('data', nowData);
-                    calculos(nowData);
-                }
-            }).catch(() => {});
+            // TV mode: read TRM from Firebase (avoids Playwright scraping on display screens)
+            if (isTVRef.current) {
+                (async () => {
+                    if (stopped || ctrl.signal.aborted) return;
+                    const current = lastDataRef.current || DataDefault;
+                    dbg('TV: querying Firebase TRM...');
+                    try {
+                        const q = query(
+                            collection(db, "priceHistory"),
+                            orderBy("timestamp", "desc"),
+                            limit(5)
+                        );
+                        const snap = await getDocs(q);
+                        const doc = snap.docs.find(d => (d.data().dolar ?? 0) > 0);
+                        if (doc) {
+                            const fbDolar: number = doc.data().dolar;
+                            dbg(`TV: Firebase dolar=${fbDolar}`);
+                            setIsError(false);
+                            localStorage.setItem('dolar', String(fbDolar));
+                            const nowData = { ...current, dolar: fbDolar, dolar_time: new Date().toLocaleTimeString('es-CO', { timeZone: 'America/Bogota' }) };
+                            lastDataRef.current = nowData;
+                            saveIfChanged('data', nowData);
+                            calculos(nowData);
+                        } else {
+                            dbg('TV: no Firebase docs, using localStorage fallback');
+                            const saved = Number(localStorage.getItem('dolar') || defaultDolar);
+                            if (saved > 0 && current.dolar === 0) {
+                                const nowData = { ...current, dolar: saved };
+                                lastDataRef.current = nowData;
+                                calculos(nowData);
+                            }
+                        }
+                    } catch (e) {
+                        const msg = e instanceof Error ? e.message : String(e);
+                        dbg(`TV: Firebase ERROR — ${msg}`);
+                        console.warn('TV Firebase TRM fallback:', e);
+                        const saved = Number(localStorage.getItem('dolar') || defaultDolar);
+                        if (saved > 0 && current.dolar === 0) {
+                            const nowData = { ...current, dolar: saved };
+                            lastDataRef.current = nowData;
+                            calculos(nowData);
+                        }
+                    }
+                })();
+            } else {
+                api.bancodebogota(ctrl.signal).then(banco => {
+                    if (stopped || ctrl.signal.aborted) return;
+                    const current = lastDataRef.current || DataDefault;
+                    if (banco.mid === 0) {
+                        const saved = typeof window !== 'undefined' ? Number(localStorage.getItem('dolar') || defaultDolar) : 0;
+                        const nowData = { ...current, dolar: saved, dolar_time: new Date().toLocaleTimeString('es-CO', { timeZone: 'America/Bogota' }) };
+                        lastDataRef.current = nowData;
+                        calculos(nowData);
+                        setIsError(true);
+                    } else {
+                        setIsError(false);
+                        if (typeof window !== 'undefined') localStorage.setItem('dolar', String(banco.mid));
+                        setImage(banco.image ? banco.image.replace('..', '') : null);
+                        const nowData = { ...current, dolar: banco.mid, dolar_date: banco.time, dolar_time: new Date().toLocaleTimeString('es-CO', { timeZone: 'America/Bogota' }) };
+                        lastDataRef.current = nowData;
+                        saveIfChanged('data', nowData);
+                        calculos(nowData);
+                    }
+                }).catch(() => {});
+            }
 
             try {
                 // Gold uses REST API — resolves in <1s
@@ -188,10 +270,11 @@ export default function Formulario() {
                         lastDataRef.current = nowData;
                         saveIfChanged('data', nowData);
                         calculos(nowData);
-                        intervalRef.current = BASE_INTERVAL;
                     } else {
-                        intervalRef.current = BASE_INTERVAL;
+                        calculos(nowData);
                     }
+                    void saveToFirebase(nowData);
+                    intervalRef.current = BASE_INTERVAL;
                 }
             } catch (e: unknown) {
                 if ((e as Error)?.name !== 'AbortError') {
@@ -236,8 +319,10 @@ export default function Formulario() {
 
     useEffect(() => {
         const handleResize = () => {
+            const tv = window.innerWidth >= 1900;
             setIsMobile(window.innerWidth <= 768);
-            setIsTV(window.innerWidth >= 1400);
+            setIsTV(tv);
+            isTVRef.current = tv;
         };
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
@@ -391,6 +476,7 @@ export default function Formulario() {
                 .matrix-grid-3col table { background: #131313; }
                 @media (max-width: 768px) {
                     .matrix-grid { grid-template-columns: 1fr; }
+                    .cards-grid { grid-template-columns: 1fr !important; }
                 }
             `}</style>
 
@@ -419,6 +505,13 @@ export default function Formulario() {
                         </span>
                         </div>
                     </div>
+                    {isTV && (
+                        <span
+                            onClick={() => setShowDebug(p => !p)}
+                            style={{ fontSize: '10px', fontWeight: 600, letterSpacing: '0.08em', color: showDebug ? '#54e98a' : '#4d4635', fontFamily: 'var(--font-inter), Inter, sans-serif', border: `1px solid ${showDebug ? '#54e98a' : '#4d4635'}`, borderRadius: '4px', padding: '2px 6px', cursor: 'pointer', userSelect: 'none' }}>
+                            TV
+                        </span>
+                    )}
                     {isSyncing && (
                         <span style={{ color: '#f2ca50', fontSize: '18px', display: 'inline-block', animation: 'spin 1s linear infinite' }}>↻</span>
                     )}
@@ -448,104 +541,21 @@ export default function Formulario() {
                 position: 'relative', zIndex: 1,
             }}>
 
-                {/* Metals price cards — 2×2 grid */}
-                <div className={"parent-card"} style={{ display: 'flex', flexWrap:"wrap",alignItems: 'center',justifyContent:'space-evenly', gap: '12px' }}>
-                    {/* B&B USD/oz */}
-                    <div className="glass-card" style={{ padding: '16px', borderRadius: '12px', borderTop: '2px solid rgba(180,180,210,0.3)' }}>
-                        <p style={labelCaps}>PRECIO B&B</p>
-                        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginTop: '6px' }}>
-                               <span className="num" style={{ fontSize: '22px', fontWeight: 600, color: '#54e98a', letterSpacing: '-0.01em', fontFamily: 'var(--font-inter), Inter, sans-serif' }}>
-                                {`$${formatMoney(((data.dolar * data.goldUsdOz) / 31.1034768).toFixed(2))}`}
-                            </span>
-                            <span style={secondaryText}>COP/oz</span>
-                        </div>
-                        <p style={{ ...secondaryText, marginTop: '4px' }}>{`(TRM*ONZA)/${31.1034768}`}</p>
-                    </div>
-                    {/* Gold COP/g */}
-                    <div className="glass-card" style={{ padding: '16px', borderRadius: '12px', borderTop: '2px solid rgba(242,202,80,0.3)' }}>
-                        <p style={labelCaps}>GoldPrice GRAMO</p>
-                        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginTop: '6px' }}>
-                            <span className="num" style={{ fontSize: '22px', fontWeight: 600, color: '#f2ca50', letterSpacing: '-0.01em', fontFamily: 'var(--font-inter), Inter, sans-serif' }}>
-                                {data.gold > 0 ? `$${formatMoney(Math.round(data.gold))}` : '—'}
-                            </span>
-                            <span style={secondaryText}>COP/g</span>
-                        </div>
-                        <p style={{ ...secondaryText, marginTop: '4px' }}>{data.gold_date || data.gold_time}</p>
-                    </div>
+                {/* Cards + charts — single container */}
+                <div className="glass-card" style={{ padding: '16px', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
 
-                    {/* Gold USD/oz */}
-                    <div className="glass-card" style={{ padding: '16px', borderRadius: '12px', borderTop: '2px solid rgba(242,202,80,0.3)' }}>
-                        <p style={labelCaps}>GoldPrice onza</p>
-                        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginTop: '6px' }}>
-                            <span className="num" style={{ fontSize: '22px', fontWeight: 600, color: '#f2ca50', letterSpacing: '-0.01em', fontFamily: 'var(--font-inter), Inter, sans-serif' }}>
-                                {data.goldUsdOz > 0 ? `$${formatMoney(data.goldUsdOz.toFixed(2))}` : '—'}
-                            </span>
-                            <span style={secondaryText}>USD/oz</span>
-                        </div>
-                        <p style={{ ...secondaryText, marginTop: '4px' }}>{data.gold_date || data.gold_time}</p>
-                    </div>
-
-                    {/* Silver COP/kg */}
-                    <div className="glass-card" style={{ padding: '16px', borderRadius: '12px', borderTop: '2px solid rgba(180,180,210,0.3)' }}>
-                        <p style={labelCaps}>GoldPrice Kilo</p>
-                        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginTop: '6px' }}>
-                            <span className="num" style={{ fontSize: '22px', fontWeight: 600, color: '#c0c8d8', letterSpacing: '-0.01em', fontFamily: 'var(--font-inter), Inter, sans-serif' }}>
-                                {data.silverCopKg > 0 ? `$${formatMoney(Math.round(data.silverCopKg))}` : '—'}
-                            </span>
-                            <span style={secondaryText}>COP/kg</span>
-                        </div>
-                        <p style={{ ...secondaryText, marginTop: '4px' }}>{data.gold_date || data.gold_time}</p>
-                    </div>
-
-                    {/* Silver USD/oz */}
-                    <div className="glass-card" style={{ padding: '16px', borderRadius: '12px', borderTop: '2px solid rgba(180,180,210,0.3)' }}>
-                        <p style={labelCaps}>GoldPrice onza</p>
-                        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginTop: '6px' }}>
-                            <span className="num" style={{ fontSize: '22px', fontWeight: 600, color: '#c0c8d8', letterSpacing: '-0.01em', fontFamily: 'var(--font-inter), Inter, sans-serif' }}>
-                                {data.silverUsdOz > 0 ? `$${formatMoney(data.silverUsdOz.toFixed(2))}` : '—'}
-                            </span>
-                            <span style={secondaryText}>USD/oz</span>
-                        </div>
-                        <p style={{ ...secondaryText, marginTop: '4px' }}>{data.gold_date || data.gold_time}</p>
-                    </div>
+                    {/* Charts */}
+                    <PriceCharts data={data}
+                                 labelCaps={labelCaps}
+                                 calcTime={calcTime}
+                                 formatMoney={formatMoney}
+                                 secondaryText={secondaryText}
+                                 isError={isError}
+                                 image={image}
+                                 setData={setData}
+                                 defaultDolar={defaultDolar} />
+                    {/* 3 price cards */}
                 </div>
-
-                {/* TRM */}
-                <div className="glass-card" style={{ padding: '14px 16px', borderRadius: '12px', borderTop: '2px solid rgba(242,202,80,0.2)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <p style={labelCaps}>{isError ? 'TRM Banco de Bogotá ▼' : 'TRM Banco de Bogotá'}</p>
-                        <span style={secondaryText}>COP/USD</span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginTop: '4px' }}>
-                        {isError ? (
-                            <input
-                                type="number"
-                                value={data.dolar}
-                                autoComplete="off"
-                                placeholder="4333"
-                                onChange={e => {
-                                    const nowData = { ...data, dolar: Number(e.target.value || 0) };
-                                    setData(nowData);
-                                    localStorage.setItem('dolar', e.target.value || defaultDolar);
-                                }}
-                                style={{
-                                    background: 'transparent', border: 'none',
-                                    borderBottom: '1px solid #f2ca50', color: '#54e98a',
-                                    fontSize: '22px', fontWeight: 600, width: '160px',
-                                    outline: 'none', fontFamily: 'var(--font-inter), Inter, sans-serif',
-                                }}
-                            />
-                        ) : (
-                            <span className="num" style={{ fontSize: '22px', fontWeight: 600, color: '#54e98a', letterSpacing: '-0.01em', fontFamily: 'var(--font-inter), Inter, sans-serif', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                {image && <img src={`https://pbit.bancodebogota.com${image}`} alt="" style={{ width: 10, height: 10 }} />}
-                                {formatMoney(data.dolar)}
-                            </span>
-                        )}
-                        <span style={{ ...secondaryText, fontSize: '10px' }}>{data.dolar_date || data.dolar_time}</span>
-                    </div>
-                </div>
-
                 {/* Price matrix — captured for screenshot */}
                 <div ref={captureRef} className="glass-card" style={{ borderRadius: '12px', overflow: 'hidden', backgroundColor: '#131313' }}>
                     {/*<div style={{ padding: '14px 16px', borderBottom: '1px solid rgba(77,70,53,0.2)', background: 'rgba(28,27,27,0.5)' }}>*/}
@@ -594,6 +604,23 @@ export default function Formulario() {
                         </>
                     )}
                 </div>
+
+
+                {/* Debug panel — visible only when showDebug is true */}
+                {showDebug && (
+                    <div style={{ background: 'rgba(0,0,0,0.85)', border: '1px solid #54e98a', borderRadius: '8px', padding: '12px', fontFamily: 'monospace', fontSize: '11px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                            <span style={{ color: '#54e98a', fontWeight: 700 }}>DEBUG · TV mode</span>
+                            <span style={{ color: '#4d4635' }}>w={typeof window !== 'undefined' ? window.innerWidth : '?'}px</span>
+                        </div>
+                        {debugLogs.length === 0
+                            ? <p style={{ color: '#4d4635', margin: 0 }}>Sin logs aún…</p>
+                            : debugLogs.map((l, i) => (
+                                <p key={i} style={{ color: l.includes('ERROR') ? '#ff6b6b' : '#c0c8d8', margin: '2px 0' }}>{l}</p>
+                            ))
+                        }
+                    </div>
+                )}
 
                 <p style={{ textAlign: 'center', color: '#4d4635', fontSize: '10px', letterSpacing: '0.1em', fontFamily: 'var(--font-inter), Inter, sans-serif' }}>
                     v1.3 · B&B GOLDSILVER

@@ -77,7 +77,11 @@ let usdRefreshing = false;
 let usdPending: Promise<{ usd: string[]; image: string | null; fecha: string | null }> | null = null;
 
 async function _fetchUsd(): Promise<{ usd: string[]; image: string | null; fecha: string | null }> {
-    const browser = await chromium.launch({ headless: true });
+    const browser = await chromium.launch({
+        headless: true,
+        args: ['--no-sandbox', '--disable-setuid-sandbox']
+    });
+    console.log('Browser iniciado');
     const page = await browser.newPage();
     try {
         await page.goto('https://pbit.bancodebogota.com/Indicadores/Tirilla.aspx', { waitUntil: 'domcontentloaded', timeout: 15000 });
