@@ -296,21 +296,25 @@ export default function PriceCharts({ data, secondaryText, labelCaps, formatMone
                 })
                 .reverse(); // oldest → newest for chart display
             setPoints(allDocs);
-
-            // Filter for last 24 hours
-            const now = new Date();
-            const twentyFourHoursAgo = new Date(now.getTime() - (24 * 60 * 60 * 1000));
-            const docs24h: ChartPoint[] = allDocs
-                .filter(doc => {
-                    const docTime = new Date(doc.timestamp);
-                    return docTime >= twentyFourHoursAgo;
-                });
-            setPoints24h(docs24h.length > 0 ? docs24h : allDocs); // fallback to all data if no data in last 24h
         }, err => {
             console.error("Firestore snapshot error:", err);
         });
         return () => unsub();
     }, []);
+
+    // Filter for last 24 hours - runs only on client
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+
+        const now = new Date();
+        const twentyFourHoursAgo = new Date(now.getTime() - (24 * 60 * 60 * 1000));
+        const docs24h: ChartPoint[] = points
+            .filter(doc => {
+                const docTime = new Date(doc.timestamp);
+                return docTime >= twentyFourHoursAgo;
+            });
+        setPoints24h(docs24h.length > 0 ? docs24h : points); // fallback to all data if no data in last 24h
+    }, [points]);
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>

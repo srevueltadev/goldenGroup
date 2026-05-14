@@ -155,7 +155,7 @@ export default function Formulario() {
 
     const calculos = useCallback((nowData: DataType) => {
         setData({ ...nowData });
-        setCalcTime(new Date().toLocaleString('es-CO', { timeZone: 'America/Bogota', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+        setCalcTime(new Date().toLocaleString('es-CO', { timeZone: 'America/Bogota', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }).replaceAll(",",""));
         const bbgt = nowData.dolar
         const multi = (bbgt * nowData.goldUsdOz) / 31.1034768;
         setDataForm(prev => {
