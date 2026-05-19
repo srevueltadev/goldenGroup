@@ -1,6 +1,6 @@
 'use client'
 import React, { useEffect, useState } from "react";
-import { collection, onSnapshot, orderBy, query, limit, where, Timestamp } from "firebase/firestore";
+import {collection, onSnapshot, orderBy, query, where, Timestamp, limit} from "firebase/firestore";
 import { db } from "@/app/firebase";
 import { DataType } from "@/app/Formulario";
 import {
@@ -49,12 +49,14 @@ interface ChartCardProps {
     color: string;
     data: ChartPoint[];
     prefix?: string;
+    showStats?: boolean;
 }
 
-function ChartCard({ title, unit, dataKey, color, data, prefix = "$" }: ChartCardProps) {
+function ChartCard({ title, unit, dataKey, color, data, prefix = "$", showStats = false }: ChartCardProps) {
     const values = data.map(d => d[dataKey] as number).filter(v => v > 0);
     const min = values.length ? Math.min(...values) : 0;
     const max = values.length ? Math.max(...values) : 0;
+    const avg = values.length ? Math.round(values.reduce((a, b) => a + b, 0) / values.length) : 0;
     const padding = (max - min) * 0.1 || 1;
     const domain: [number, number] = [min - padding, max + padding];
 
@@ -74,13 +76,22 @@ function ChartCard({ title, unit, dataKey, color, data, prefix = "$" }: ChartCar
 
     return (
         <div className="glass-card" style={{ padding: '14px 16px', borderRadius: '12px', borderTop: `2px solid ${color}40` }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '10px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                 <p style={{
                     fontSize: '11px', fontWeight: 600, letterSpacing: '0.1em',
                     textTransform: 'uppercase', color: '#99907c',
                     fontFamily: 'var(--font-inter), Inter, sans-serif', margin: 0,
                 }}>{title}</p>
-                <span style={{ fontSize: '11px', color: '#99907c', fontFamily: 'var(--font-inter), Inter, sans-serif' }}>{unit}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    {showStats && values.length > 0 && (
+                        <div style={{ display: 'flex', gap: '8px', fontSize: '10px', fontFamily: 'var(--font-inter), Inter, sans-serif' }}>
+                            <span style={{ color: '#c0c8d8' }}>↓{prefix}{fmtNum(min)}</span>
+                            <span style={{ color: color, fontWeight: 700 }}>∅{prefix}{fmtNum(avg)}</span>
+                            <span style={{ color: '#f2ca50' }}>↑{prefix}{fmtNum(max)}</span>
+                        </div>
+                    )}
+                    <span style={{ fontSize: '11px', color: '#99907c', fontFamily: 'var(--font-inter), Inter, sans-serif' }}>{unit}</span>
+                </div>
             </div>
 
             {data.length < 2 ? (
@@ -207,7 +218,7 @@ function DailyStatsChart() {
     const domMax = allVals.length ? Math.max(...allVals) * 1.001 : 1;
 
     return (
-        <div style={{ gridColumn: '1 / -1', borderTop: '1px solid rgba(84,233,138,0.2)', paddingTop: '10px' }}>
+        <div >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '8px' }}>
                 <p style={{
                     fontSize: '10px', fontWeight: 600, letterSpacing: '0.1em',
@@ -269,56 +280,50 @@ interface PriceChartsProps {
     defaultDolar: string;
 }
 
+
 export default function PriceCharts({ data, secondaryText, labelCaps, formatMoney, calcTime, isError, image, setData, defaultDolar }: PriceChartsProps) {
-    const [points, setPoints] = useState<ChartPoint[]>([]);
-  const [points24h, setPoints24h] = useState<ChartPoint[]>([]);
+    const [points24h, setPoints24h] = useState<ChartPoint[]>([]);
 
     useEffect(() => {
+        const twentyHoursAgo = new Date();
+        twentyHoursAgo.setHours(twentyHoursAgo.getHours() - 20);
         const q = query(
             collection(db, "priceHistory"),
-            orderBy("timestamp", "desc"),
-            limit(100)
+            where("timestamp", ">=", Timestamp.fromDate(twentyHoursAgo)),
+            orderBy("timestamp", "asc"),
+            limit(200)
         );
         const unsub = onSnapshot(q, snap => {
-            const allDocs: ChartPoint[] = snap.docs
-                .map(d => {
-                    const doc = d.data() as PriceDoc;
-                    return {
-                        time: fmtTime(doc.timestamp),
-                        timestamp: doc.timestamp ? doc.timestamp.toDate().toISOString() : '',
-                        gold: doc.gold || 0,
-                        goldUsdOz: doc.goldUsdOz || 0,
-                        silverCopKg: doc.silverCopKg || 0,
-                        silverUsdOz: doc.silverUsdOz || 0,
-                        trmGoldOz: doc.trmGoldOz || 0,
-                        dolar: doc.dolar || 0,
-                    };
-                })
-                .reverse(); // oldest → newest for chart display
-            setPoints(allDocs);
+            const docs: ChartPoint[] = snap.docs.map(d => {
+                const doc = d.data() as PriceDoc;
+                return {
+                    time: fmtTime(doc.timestamp),
+                    timestamp: doc.timestamp ? doc.timestamp.toDate().toISOString() : '',
+                    gold: doc.gold || 0,
+                    goldUsdOz: doc.goldUsdOz || 0,
+                    silverCopKg: doc.silverCopKg || 0,
+                    silverUsdOz: doc.silverUsdOz || 0,
+                    trmGoldOz: doc.trmGoldOz || 0,
+                    dolar: doc.dolar || 0,
+                };
+            });
+            setPoints24h(docs);
         }, err => {
             console.error("Firestore snapshot error:", err);
         });
         return () => unsub();
     }, []);
 
-    // Filter for last 24 hours - runs only on client
-    useEffect(() => {
-        if (typeof window === 'undefined') return;
-
-        const now = new Date();
-        const twentyFourHoursAgo = new Date(now.getTime() - (24 * 60 * 60 * 1000));
-        const docs24h: ChartPoint[] = points
-            .filter(doc => {
-                const docTime = new Date(doc.timestamp);
-                return docTime >= twentyFourHoursAgo;
-            });
-        setPoints24h(docs24h.length > 0 ? docs24h : points); // fallback to all data if no data in last 24h
-    }, [points]);
-
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <DailyStatsChart />
+            <ChartCard
+                title="Precio B&B (5am–5am)"
+                unit="COP/oz"
+                dataKey="trmGoldOz"
+                color="#54e98a"
+                data={points24h}
+                showStats
+            />
             <div className="cards-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '10px', alignItems: 'stretch' }}>
                     {/*<ChartCard*/}
                     {/*    title="Precio B&B"*/}
@@ -328,13 +333,8 @@ export default function PriceCharts({ data, secondaryText, labelCaps, formatMone
                     {/*    color="#54e98a"*/}
                     {/*    data={points}*/}
                     {/*/>*/}
-                    <ChartCard
-                        title="Precio B&B (24h)"
-                        unit="COP/oz"
-                        dataKey="trmGoldOz"
-                        color="#54e98a"
-                        data={points24h}
-                    />
+                   <DailyStatsChart />
+
                     <div style={{ padding: '14px', borderRadius: '10px', background: 'rgba(84,233,138,0.05)', border: '1px solid rgba(84,233,138,0.15)' }}>
                         <p style={labelCaps}>PRECIO B&B</p>
                         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginTop: '6px' }}>
