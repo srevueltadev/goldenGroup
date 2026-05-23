@@ -285,13 +285,25 @@ export default function PriceCharts({ data, secondaryText, labelCaps, formatMone
     const [points24h, setPoints24h] = useState<ChartPoint[]>([]);
 
     useEffect(() => {
-        const twentyHoursAgo = new Date();
-        twentyHoursAgo.setHours(twentyHoursAgo.getHours() - 20);
+        // Colombia is always UTC-5 (no DST). Chart day runs 05:00–05:00 Bogotá time.
+        // 05:00 Bogotá = 10:00 UTC
+        const COLOMBIA_OFFSET_MS = 5 * 60 * 60 * 1000;
+        const nowMs = Date.now();
+        const bogotaDate = new Date(nowMs - COLOMBIA_OFFSET_MS);
+        const fiveAmUtcMs = Date.UTC(
+            bogotaDate.getUTCFullYear(),
+            bogotaDate.getUTCMonth(),
+            bogotaDate.getUTCDate(),
+            10, 0, 0, 0 // 05:00 Bogotá = 10:00 UTC
+        );
+        // If current time is before 5 AM Bogotá, use yesterday's 5 AM
+        const queryStart = new Date(nowMs < fiveAmUtcMs ? fiveAmUtcMs - 86400000 : fiveAmUtcMs);
+
         const q = query(
             collection(db, "priceHistory"),
-            where("timestamp", ">=", Timestamp.fromDate(twentyHoursAgo)),
+            where("timestamp", ">=", Timestamp.fromDate(queryStart)),
             orderBy("timestamp", "asc"),
-            limit(200)
+            limit(300)
         );
         const unsub = onSnapshot(q, snap => {
             const docs: ChartPoint[] = snap.docs.map(d => {
