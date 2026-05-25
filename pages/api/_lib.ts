@@ -1,4 +1,6 @@
 import { chromium } from 'playwright';
+import { getDb } from '../../src/lib/firebaseAdmin';
+import { FieldValue } from 'firebase-admin/firestore';
 
 const GOLD_TTL      = 10_000;
 const GOLD_SOFT_TTL = 5_000;
@@ -71,6 +73,31 @@ export function getGoldFromCache(): MetalsData | null {
     return null;
 }
 
+// ---- Firestore snapshot (server-side, fire-and-forget) ----
+let lastFirestoreSaveTs = 0;
+
+async function _saveFirestoreSnapshot(usdRaw: string, gold: MetalsData & { ts: number }): Promise<void> {
+    const now = Date.now();
+    if (now - lastFirestoreSaveTs < 5 * 60_000) return; // max once every 5 min
+    const usdNum = Number(usdRaw.split(':')[1]?.trim().replaceAll(',', '.') || '0');
+    if (!usdNum || gold.goldUsdOz <= 0) return;
+    lastFirestoreSaveTs = now;
+    try {
+        const db = getDb();
+        await db.collection('priceHistory').add({
+            timestamp: FieldValue.serverTimestamp(),
+            gold:        gold.xauCop,
+            goldUsdOz:   gold.goldUsdOz,
+            silverCopKg: gold.xagCopKg,
+            silverUsdOz: gold.silverUsdOz,
+            trmGoldOz:   (usdNum * gold.goldUsdOz) / 31.1034768,
+            dolar:       usdNum,
+        });
+    } catch (e) {
+        console.error('[_lib] Firestore snapshot error:', e);
+    }
+}
+
 // ---- USD (Banco de Bogotá) ----
 let usdCache: { usd: string[]; image: string | null; fecha: string | null; ts: number } | null = null;
 let usdRefreshing = false;
@@ -112,7 +139,13 @@ export async function getOrFetchUsd(): Promise<{ usd: string[]; image: string | 
     }
     if (usdPending) return usdPending;
     usdPending = _fetchUsd()
-        .then(data => { usdCache = { ...data, ts: Date.now() }; return data; })
+        .then(data => {
+            usdCache = { ...data, ts: Date.now() };
+            if (data.usd[0] && goldCache) {
+                _saveFirestoreSnapshot(data.usd[0], goldCache).catch(() => {});
+            }
+            return data;
+        })
         .finally(() => { usdPending = null; });
     return usdPending;
 }
