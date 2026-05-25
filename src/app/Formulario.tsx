@@ -140,7 +140,7 @@ export default function Formulario() {
         }
     }, []);
 
-    const defaultDolar = "4333.00";
+    const defaultDolar = "3667.00";
 
     const saveIfChanged = (key: string, value: unknown, throttleMs = 2000) => {
         if (typeof window === 'undefined') return;

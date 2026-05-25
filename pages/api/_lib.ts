@@ -76,16 +76,26 @@ export function getGoldFromCache(): MetalsData | null {
 // ---- Firestore snapshot (server-side, fire-and-forget) ----
 let lastFirestoreSaveTs = 0;
 
-async function _saveFirestoreSnapshot(usdRaw: string, gold: MetalsData & { ts: number }): Promise<void> {
+async function _saveFirestoreSnapshot(usdRaw: string): Promise<void> {
     const now = Date.now();
     if (now - lastFirestoreSaveTs < 5 * 60_000) return; // max once every 5 min
     const usdNum = Number(usdRaw.split(':')[1]?.trim().replaceAll(',', '.') || '0');
-    if (!usdNum || gold.goldUsdOz <= 0) return;
+    if (!usdNum) return;
+
+    // Always fetch fresh gold data — cron calls only /api/getUsd so goldCache may be empty
+    let gold: MetalsData | null = null;
+    try {
+        gold = await getOrFetchGold();
+    } catch {
+        gold = goldCache ?? null;
+    }
+    if (!gold || gold.goldUsdOz <= 0) return;
+
     lastFirestoreSaveTs = now;
     try {
         const db = getDb();
         await db.collection('priceHistory').add({
-            timestamp: FieldValue.serverTimestamp(),
+            timestamp:   FieldValue.serverTimestamp(),
             gold:        gold.xauCop,
             goldUsdOz:   gold.goldUsdOz,
             silverCopKg: gold.xagCopKg,
@@ -141,8 +151,8 @@ export async function getOrFetchUsd(): Promise<{ usd: string[]; image: string | 
     usdPending = _fetchUsd()
         .then(data => {
             usdCache = { ...data, ts: Date.now() };
-            if (data.usd[0] && goldCache) {
-                _saveFirestoreSnapshot(data.usd[0], goldCache).catch(() => {});
+            if (data.usd[0]) {
+                _saveFirestoreSnapshot(data.usd[0]).catch(() => {});
             }
             return data;
         })
