@@ -1,8 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { withAuth } from './middleware';
 import { getOrFetchUsd, getUsdFromCache } from './_lib';
 
-async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method !== 'GET') return res.status(405).json({ error: 'Method Not Allowed' });
     try {
         const data = await getOrFetchUsd();
@@ -18,5 +17,3 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         return res.status(500).json({ error: 'Internal Server Error' });
     }
 }
-
-export default withAuth(handler);
