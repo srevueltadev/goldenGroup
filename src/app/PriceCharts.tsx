@@ -380,9 +380,9 @@ export default function PriceCharts({ data, secondaryText, labelCaps, formatMone
                         <p style={{ ...secondaryText, marginTop: '4px' }}>{data.gold_date || data.gold_time}</p>
                     </div>
 
-                <div className="glass-card" style={{ padding: '14px 16px', borderRadius: '12px', borderTop: '2px solid rgba(242,202,80,0.2)' }}>
+                <div className="glass-card" style={{ padding: '14px 16px', borderRadius: '12px', borderTop: `2px solid ${isError ? 'rgba(255,107,107,0.4)' : 'rgba(242,202,80,0.2)'}` }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <p style={labelCaps}>{isError ? 'TRM Banco de Bogotá ▼' : 'TRM Banco de Bogotá'}</p>
+                        <p style={labelCaps}>TRM Banco de Bogotá</p>
                         <span style={secondaryText}>COP/USD</span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginTop: '4px' }}>
@@ -413,6 +413,17 @@ export default function PriceCharts({ data, secondaryText, labelCaps, formatMone
                         )}
                         <span style={{ ...secondaryText, fontSize: '10px' }}>{data.dolar_date || data.dolar_time}</span>
                     </div>
+                    {isError && (
+                        <p style={{
+                            margin: '6px 0 0',
+                            fontSize: '10px',
+                            color: '#ff6b6b',
+                            fontFamily: 'var(--font-inter), Inter, sans-serif',
+                            letterSpacing: '0.03em',
+                        }}>
+                            Banco de Bogotá no disponible · usando último valor guardado
+                        </p>
+                    )}
                 </div>
 
             </div>

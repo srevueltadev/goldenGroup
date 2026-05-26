@@ -78,9 +78,35 @@ let lastFirestoreSaveTs = 0;
 
 async function _saveFirestoreSnapshot(usdRaw: string): Promise<void> {
     const now = Date.now();
-    if (now - lastFirestoreSaveTs < 5 * 60_000) return; // max once every 5 min
-    const usdNum = Number(usdRaw.split(':')[1]?.trim().replaceAll(',', '.') || '0');
-    if (!usdNum) return;
+    const sinceLastSave = now - lastFirestoreSaveTs;
+    console.log('[_saveFirestoreSnapshot] called with usdRaw:', usdRaw, '| ms since last save:', sinceLastSave);
+    if (sinceLastSave < 5 * 60_000) {
+        console.log('[_saveFirestoreSnapshot] skipping — throttled (5 min cooldown)');
+        return;
+    }
+    let usdNum = Number(usdRaw?.split(':')[1]?.trim().replaceAll(',', '.') || '0');
+    console.log('[_saveFirestoreSnapshot] parsed usdNum:', usdNum);
+    if (!usdNum) {
+        console.log('[_saveFirestoreSnapshot] usdNum=0, querying last priceHistory value');
+        try {
+            const db = getDb();
+            const snap = await db.collection('priceHistory')
+                .orderBy('timestamp', 'desc')
+                .limit(1)
+                .get();
+            if (snap.empty) {
+                console.log('[_saveFirestoreSnapshot] priceHistory empty, aborting');
+                return;
+            }
+            const lastDolar = snap.docs[0].data().dolar;
+            console.log('[_saveFirestoreSnapshot] last priceHistory dolar:', lastDolar);
+            if (!lastDolar) return;
+            usdNum = lastDolar;
+        } catch (e) {
+            console.error('[_saveFirestoreSnapshot] error querying priceHistory:', e);
+            return;
+        }
+    }
 
     // Always fetch fresh gold data — cron calls only /api/getUsd so goldCache may be empty
     let gold: MetalsData | null = null;
@@ -103,6 +129,7 @@ async function _saveFirestoreSnapshot(usdRaw: string): Promise<void> {
             trmGoldOz:   (usdNum * gold.goldUsdOz) / 31.1034768,
             dolar:       usdNum,
         });
+        console.log('[_lib] Firestore snapshot saved');
     } catch (e) {
         console.error('[_lib] Firestore snapshot error:', e);
     }
@@ -114,31 +141,44 @@ let usdRefreshing = false;
 let usdPending: Promise<{ usd: string[]; image: string | null; fecha: string | null }> | null = null;
 
 async function _fetchUsd(): Promise<{ usd: string[]; image: string | null; fecha: string | null }> {
+    console.log('[_fetchUsd] launching Playwright browser');
     const browser = await chromium.launch({
         headless: true,
         args: ['--no-sandbox', '--disable-setuid-sandbox']
     });
-    console.log('Browser iniciado');
+    console.log('[_fetchUsd] browser launched');
     const page = await browser.newPage();
     try {
+        console.log('[_fetchUsd] navigating to Banco de Bogotá...');
         await page.goto('https://pbit.bancodebogota.com/Indicadores/Tirilla.aspx', { waitUntil: 'domcontentloaded', timeout: 15000 });
+        console.log('[_fetchUsd] page loaded, extracting selector :nth-child(3)');
+        const html = await page.content();
+        console.log('[_fetchUsd] page HTML (first 3000 chars):', html.slice(0, 3000));
         let usd = await page.$$eval('#ctl00_MarPrinc > span:nth-child(3)', (els) => els.map(e => e.textContent?.trim() || ''));
         let selector = '#ctl00_MarPrinc > span:nth-child(3)';
+        console.log('[_fetchUsd] :nth-child(3) result:', usd);
         if (usd.length === 0) {
+            console.log('[_fetchUsd] fallback to :nth-child(2)');
             usd = await page.$$eval('#ctl00_MarPrinc > span:nth-child(2)', (els) => els.map(e => e.textContent?.trim() || ''));
             selector = '#ctl00_MarPrinc > span:nth-child(2)';
+            console.log('[_fetchUsd] :nth-child(2) result:', usd);
         }
         const image = await page.$eval(`${selector} img`, (img) => img.getAttribute('src') || null).catch(() => null);
         const fecha = await page.$eval('#ctl00_MarPrinc > span:nth-child(1)', (el) => el.textContent?.trim() || null).catch(() => null);
+        console.log('[_fetchUsd] done — usd:', usd, 'fecha:', fecha, 'image:', image ? '[base64]' : null);
         return { usd, image, fecha };
     } finally {
         await browser.close();
+        console.log('[_fetchUsd] browser closed');
     }
 }
 
 export async function getOrFetchUsd(): Promise<{ usd: string[]; image: string | null; fecha: string | null }> {
+    const age = usdCache ? Date.now() - usdCache.ts : null;
+    console.log('[getOrFetchUsd] cache age:', age, 'TTL:', TTL, 'hit:', !!(usdCache && age !== null && age < TTL));
     if (usdCache && Date.now() - usdCache.ts < TTL) {
         if (Date.now() - usdCache.ts > SOFT_TTL && !usdRefreshing) {
+            console.log('[getOrFetchUsd] soft-TTL expired, refreshing in background');
             usdRefreshing = true;
             _fetchUsd()
                 .then(data => { usdCache = { ...data, ts: Date.now() }; })
@@ -147,14 +187,23 @@ export async function getOrFetchUsd(): Promise<{ usd: string[]; image: string | 
         }
         return { usd: usdCache.usd, image: usdCache.image, fecha: usdCache.fecha };
     }
-    if (usdPending) return usdPending;
+    console.log('[getOrFetchUsd] cache miss — fetching USD');
+    if (usdPending) {
+        console.log('[getOrFetchUsd] request already in-flight, attaching to pending promise');
+        _saveFirestoreSnapshot('').catch(e => console.error('[_lib] snapshot error (pending):', e));
+        return usdPending;
+    }
+    console.log('[getOrFetchUsd] launching _fetchUsd()');
     usdPending = _fetchUsd()
         .then(data => {
+            console.log('[getOrFetchUsd] _fetchUsd() resolved, usd:', data.usd, 'fecha:', data.fecha);
             usdCache = { ...data, ts: Date.now() };
-            if (data.usd[0]) {
-                _saveFirestoreSnapshot(data.usd[0]).catch(() => {});
-            }
+            _saveFirestoreSnapshot(data.usd[0]).catch(e => console.error('[_lib] snapshot error:', e));
             return data;
+        })
+        .catch(err => {
+            console.error('[getOrFetchUsd] _fetchUsd() rejected:', err);
+            throw err;
         })
         .finally(() => { usdPending = null; });
     return usdPending;
