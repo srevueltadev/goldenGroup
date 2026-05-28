@@ -357,6 +357,17 @@ export default function PriceCharts({ data, secondaryText, labelCaps, formatMone
                         </div>
                         <p style={{ ...secondaryText, marginTop: '4px' }}>{calcTime}</p>
                     </div>
+
+                    <div style={{ padding: '14px', borderRadius: '10px', background: 'rgba(242,202,80,0.05)', border: '1px solid rgba(242,202,80,0.15)' }}>
+                        <p style={labelCaps}>GoldPrice</p>
+                        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginTop: '6px' }}>
+                                    <span className="num" style={{ fontSize: '22px', fontWeight: 600, color: '#f2ca50', letterSpacing: '-0.01em', fontFamily: 'var(--font-inter), Inter, sans-serif' }}>
+                                        {data.gold > 0 ? `$${formatMoney(data.gold.toFixed(2))}` : '—'}
+                                    </span>
+                            <span style={secondaryText}>COP/oz</span>
+                        </div>
+                        <p style={{ ...secondaryText, marginTop: '4px' }}>{data.gold_date || data.gold_time}</p>
+                    </div>
                     {/* Gold USD/oz */}
                     <div style={{ padding: '14px', borderRadius: '10px', background: 'rgba(242,202,80,0.05)', border: '1px solid rgba(242,202,80,0.15)' }}>
                         <p style={labelCaps}>GoldPrice onza</p>
