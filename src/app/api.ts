@@ -1,14 +1,14 @@
+// Consulta directa al backend central desde el navegador (sin pasar por
+// pages/api): menos saltos y la app sigue viva aunque el server Next esté frío.
+const GOLD_API = process.env.NEXT_PUBLIC_GOLD_API_URL ?? 'https://gold-data-api.fly.dev';
+const GOLD_API_KEY = process.env.NEXT_PUBLIC_GOLD_API_KEY ?? 'santi.dev';
 
-function getAuthToken(): string | null {
-    if (typeof window !== 'undefined') {
-        return localStorage.getItem('authToken');
-    }
-    return null;
-}
+const apiHeaders = { 'x-api-key': GOLD_API_KEY };
 
-function getAuthHeaders(): HeadersInit {
-    const token = getAuthToken();
-    return token ? { 'Authorization': `Bearer ${token}` } : {};
+function parseUsdMid(usd: string[] | undefined, value?: unknown): number {
+    if (typeof value === 'number' && value > 0) return value;
+    if (usd?.[0]) return Number(usd[0].split(':')[1]?.trim().replaceAll(',', '.') || 0);
+    return 0;
 }
 
 const api = {
@@ -22,7 +22,7 @@ const api = {
             usd: { mid: 0, image: null as string | null, time: '' },
         };
         try {
-            const response = await fetch('/api/getData', { signal, headers: getAuthHeaders() });
+            const response = await fetch(`${GOLD_API}/api/latest`, { signal, headers: apiHeaders });
             const data = await response.json();
 
             if (data.gold?.xauCop) {
@@ -32,8 +32,8 @@ const api = {
                 result.gold.silverUsdOz = Number(data.gold.silverUsdOz || 0);
                 result.gold.time = data.gold.fecha || '';
             }
-            if (data.usd?.usd?.[0]) {
-                result.usd.mid = Number(data.usd.usd[0].split(':')[1]?.trim().replaceAll(',', '.') || 0);
+            if (data.usd) {
+                result.usd.mid = parseUsdMid(data.usd.usd, data.usd.value);
                 result.usd.image = data.usd.image || null;
                 result.usd.time = data.usd.fecha || '';
             }
@@ -47,13 +47,11 @@ const api = {
     bancodebogota: async (signal?: AbortSignal) => {
         const result = { mid: 0, image: null as string | null, time: '' };
         try {
-            const response = await fetch('/api/getUsd', { signal, headers: getAuthHeaders() });
+            const response = await fetch(`${GOLD_API}/api/usd`, { signal, headers: apiHeaders });
             const data = await response.json();
-            if (data.usd?.[0]) {
-                result.mid = Number(data.usd[0].split(':')[1].trim().replaceAll(',', '.'));
-                result.image = data?.image || null;
-                result.time = data?.fecha || '';
-            }
+            result.mid = parseUsdMid(data.usd, data.value);
+            result.image = data?.image || null;
+            result.time = data?.fecha || '';
             return result;
         } catch {
             return result;
@@ -63,7 +61,7 @@ const api = {
     netData: async (signal?: AbortSignal) => {
         const result = { xauCop: 0, xagCopKg: 0, goldUsdOz: 0, silverUsdOz: 0, time: '' };
         try {
-            const response = await fetch('/api/getNetData', { signal, headers: getAuthHeaders() });
+            const response = await fetch(`${GOLD_API}/api/gold`, { signal, headers: apiHeaders });
             const data = await response.json();
             if (data.xauCop) {
                 result.xauCop      = Number(data.xauCop);
