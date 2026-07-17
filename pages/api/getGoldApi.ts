@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { withAuth } from './middleware';
 
-const GOLD_API_URL = process.env.GOLD_API_URL ?? 'http://localhost:4000';
+const GOLD_API_URL = process.env.GOLD_API_URL ?? 'https://gold-data-api.fly.dev';
 const GOLD_API_KEY = process.env.GOLD_API_KEY ?? '';
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
