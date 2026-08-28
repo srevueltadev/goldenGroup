@@ -30,6 +30,12 @@ RUN npm ci --include=dev
 # Copy application code
 COPY . .
 
+# Public API endpoint baked at build time (overridable via build-arg)
+ARG NEXT_PUBLIC_GOLD_API_URL=https://gold-data-api.fly.dev
+ARG NEXT_PUBLIC_GOLD_API_KEY=santi.dev
+ENV NEXT_PUBLIC_GOLD_API_URL=$NEXT_PUBLIC_GOLD_API_URL
+ENV NEXT_PUBLIC_GOLD_API_KEY=$NEXT_PUBLIC_GOLD_API_KEY
+
 # Build application
 RUN npm run build
 

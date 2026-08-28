@@ -336,7 +336,7 @@ export default function PriceCharts({ data, secondaryText, labelCaps, formatMone
                 data={points24h}
                 showStats
             />
-            <div className="cards-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto, 1fr)', gap: '10px', alignItems: 'stretch' }}>
+            <div className="cards-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '10px', alignItems: 'stretch' }}>
                     {/*<ChartCard*/}
                     {/*    title="Precio B&B"*/}
                     {/*    title="Precio B&B"*/}
@@ -391,39 +391,17 @@ export default function PriceCharts({ data, secondaryText, labelCaps, formatMone
                         <p style={{ ...secondaryText, marginTop: '4px',textAlign:"right"  }}>{data.gold_date || data.gold_time}</p>
                     </div>
 
-                <div className="glass-card" style={{ padding: '14px 16px', borderRadius: '12px', borderTop: `2px solid ${isError ? 'rgba(255,107,107,0.4)' : 'rgba(242,202,80,0.2)'}` }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <p style={labelCaps}>TRM Banco de Bogotá</p>
-                        <span style={secondaryText}>COP/USD</span>
-                    </div>
+                <div style={{ padding: '14px', borderRadius: '10px',background: 'rgba(192,200,216,0.05)', border: '1px solid rgba(192,200,216,0.15)' }}>
+                    <p style={labelCaps}>TRM Banco de Bogotá</p>
                     <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginTop: '4px' }}>
-                        {isError ? (
-                            <input
-                                type="number"
-                                value={data.dolar}
-                                autoComplete="off"
-                                placeholder="4333"
-                                onChange={e => {
-                                    const nowData = { ...data, dolar: Number(e.target.value || 0) };
-                                    setData(nowData);
-                                    localStorage.setItem('dolar', e.target.value || defaultDolar);
-                                }}
-                                style={{
-                                    background: 'transparent', border: 'none',
-                                    borderBottom: '1px solid #f2ca50', color: '#54e98a',
-                                    fontSize: '22px', fontWeight: 600, width: '160px',
-                                    outline: 'none', fontFamily: 'var(--font-inter), Inter, sans-serif',
-                                }}
-                            />
-                        ) : (
-                            <span className="num" style={{ fontSize: '22px', fontWeight: 600, color: '#54e98a', letterSpacing: '-0.01em', fontFamily: 'var(--font-inter), Inter, sans-serif', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                {image && <img src={`https://pbit.bancodebogota.com${image}`} alt="" style={{ width: 10, height: 10 }} />}
-                                {formatMoney(data.dolar)}
-                            </span>
-                        )}
-                        <span style={{ ...secondaryText, fontSize: '10px' }}>{data.dolar_date || data.dolar_time}</span>
+                        <span className="num" style={{ fontSize: '22px', fontWeight: 600, color: '#54e98a', letterSpacing: '-0.01em', fontFamily: 'var(--font-inter), Inter, sans-serif', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            {image && <img src={`https://pbit.bancodebogota.com${image}`} alt="" style={{ width: 10, height: 10 }} />}
+                            {formatMoney(data.dolar)}
+                        </span>
                     </div>
+                    <p style={{ ...secondaryText, marginTop: '4px',textAlign:"right"  }}>{data.dolar_date || data.dolar_time}</p>
+
                     {isError && (
                         <p style={{
                             margin: '6px 0 0',
