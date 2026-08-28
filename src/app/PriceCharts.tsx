@@ -330,13 +330,13 @@ export default function PriceCharts({ data, secondaryText, labelCaps, formatMone
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <ChartCard
                 title="Precio B&B (5am–5am)"
-                unit="COP/oz"
+                unit={"COP/oz"}
                 dataKey="trmGoldOz"
                 color="#54e98a"
                 data={points24h}
                 showStats
             />
-            <div className="cards-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '10px', alignItems: 'stretch' }}>
+            <div className="cards-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto, 1fr)', gap: '10px', alignItems: 'stretch' }}>
                     {/*<ChartCard*/}
                     {/*    title="Precio B&B"*/}
                     {/*    title="Precio B&B"*/}
@@ -353,9 +353,9 @@ export default function PriceCharts({ data, secondaryText, labelCaps, formatMone
                                 <span className="num" style={{ fontSize: '22px', fontWeight: 600, color: '#54e98a', letterSpacing: '-0.01em', fontFamily: 'var(--font-inter), Inter, sans-serif' }}>
                                     {`$${formatMoney(((data.dolar * data.goldUsdOz) / 31.1034768).toFixed(2))}`}
                                 </span>
-                            <span style={secondaryText}>COP/oz</span>
+                            {/*<span style={secondaryText}>COP/oz</span>*/}
                         </div>
-                        <p style={{ ...secondaryText, marginTop: '4px' }}>{calcTime}</p>
+                        <p style={{ ...secondaryText, marginTop: '4px',textAlign:"right" }}>{calcTime}</p>
                     </div>
 
                     <div style={{ padding: '14px', borderRadius: '10px', background: 'rgba(242,202,80,0.05)', border: '1px solid rgba(242,202,80,0.15)' }}>
@@ -364,9 +364,9 @@ export default function PriceCharts({ data, secondaryText, labelCaps, formatMone
                                     <span className="num" style={{ fontSize: '22px', fontWeight: 600, color: '#f2ca50', letterSpacing: '-0.01em', fontFamily: 'var(--font-inter), Inter, sans-serif' }}>
                                         {data.gold > 0 ? `$${formatMoney(data.gold.toFixed(2))}` : '—'}
                                     </span>
-                            <span style={secondaryText}>COP/oz</span>
+                            {/*<span style={secondaryText}>COP/oz</span>*/}
                         </div>
-                        <p style={{ ...secondaryText, marginTop: '4px' }}>{data.gold_date || data.gold_time}</p>
+                        <p style={{ ...secondaryText, marginTop: '4px',textAlign:"right"  }}>{data.gold_date || data.gold_time}</p>
                     </div>
                     {/* Gold USD/oz */}
                     <div style={{ padding: '14px', borderRadius: '10px', background: 'rgba(242,202,80,0.05)', border: '1px solid rgba(242,202,80,0.15)' }}>
@@ -375,9 +375,9 @@ export default function PriceCharts({ data, secondaryText, labelCaps, formatMone
                                 <span className="num" style={{ fontSize: '22px', fontWeight: 600, color: '#f2ca50', letterSpacing: '-0.01em', fontFamily: 'var(--font-inter), Inter, sans-serif' }}>
                                     {data.goldUsdOz > 0 ? `$${formatMoney(data.goldUsdOz.toFixed(2))}` : '—'}
                                 </span>
-                            <span style={secondaryText}>USD/oz</span>
+                            {/*<span style={secondaryText}>USD/oz</span>*/}
                         </div>
-                        <p style={{ ...secondaryText, marginTop: '4px' }}>{data.gold_date || data.gold_time}</p>
+                        <p style={{ ...secondaryText, marginTop: '4px',textAlign:"right"  }}>{data.gold_date || data.gold_time}</p>
                     </div>
                     {/* Silver USD/oz */}
                     <div style={{ padding: '14px', borderRadius: '10px', background: 'rgba(192,200,216,0.05)', border: '1px solid rgba(192,200,216,0.15)' }}>
@@ -386,9 +386,9 @@ export default function PriceCharts({ data, secondaryText, labelCaps, formatMone
                                 <span className="num" style={{ fontSize: '22px', fontWeight: 600, color: '#c0c8d8', letterSpacing: '-0.01em', fontFamily: 'var(--font-inter), Inter, sans-serif' }}>
                                     {data.silverUsdOz > 0 ? `$${formatMoney(data.silverUsdOz.toFixed(2))}` : '—'}
                                 </span>
-                            <span style={secondaryText}>USD/oz</span>
+                            {/*<span style={secondaryText}>USD/oz</span>*/}
                         </div>
-                        <p style={{ ...secondaryText, marginTop: '4px' }}>{data.gold_date || data.gold_time}</p>
+                        <p style={{ ...secondaryText, marginTop: '4px',textAlign:"right"  }}>{data.gold_date || data.gold_time}</p>
                     </div>
 
                 <div className="glass-card" style={{ padding: '14px 16px', borderRadius: '12px', borderTop: `2px solid ${isError ? 'rgba(255,107,107,0.4)' : 'rgba(242,202,80,0.2)'}` }}>

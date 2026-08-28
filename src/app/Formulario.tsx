@@ -536,7 +536,7 @@ export default function Formulario() {
 
             <main style={{
                 marginTop: '70px', padding: '16px 20px',
-                maxWidth: defaultTV?'1500px':'1000px', marginLeft: 'auto', marginRight: 'auto',
+                maxWidth: defaultTV?'1700px':'1300px', marginLeft: 'auto', marginRight: 'auto',
                 display: 'flex', flexDirection: 'column', gap: '12px',
                 position: 'relative', zIndex: 1,
             }}>
