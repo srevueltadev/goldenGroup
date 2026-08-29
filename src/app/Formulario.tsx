@@ -370,7 +370,7 @@ export default function Formulario() {
         fontFamily: 'var(--font-inter), Inter, sans-serif', margin: 0,
     };
     const secondaryText: React.CSSProperties = {
-        color: '#cac2af', fontSize: '14px',
+        color: '#cac2af', fontSize: isMobile?'16px':'14px',
         fontFamily: 'var(--font-inter), Inter, sans-serif', margin: 0,
     };
 

@@ -281,7 +281,7 @@ interface PriceChartsProps {
 }
 
 
-export default function PriceCharts({ data, secondaryText, labelCaps, formatMoney, calcTime, isError, image, setData, defaultDolar }: PriceChartsProps) {
+export default function PriceCharts({ data, secondaryText, labelCaps, formatMoney, calcTime, isError, image }: PriceChartsProps) {
     const [points24h, setPoints24h] = useState<ChartPoint[]>([]);
 
     useEffect(() => {
