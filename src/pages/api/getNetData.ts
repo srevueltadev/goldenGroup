@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { withAuth } from './middleware';
 
-const GOLD_API_URL = process.env.GOLD_API_URL ?? 'https://gold-data-api.fly.dev';
+const GOLD_API_URL = process.env.GOLD_API_URL ?? 'https://gold-api.santirev.com';
 const GOLD_API_KEY = process.env.GOLD_API_KEY ?? 'santi.dev';
 
 // Último valor bueno: si el upstream falla, servirlo en vez de 503.

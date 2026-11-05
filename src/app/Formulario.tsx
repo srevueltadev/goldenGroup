@@ -39,20 +39,8 @@ const defaultForm: FormType[] = [
     { A: "", B: 0, C: "90.0%" },
     { A: "", B: 0, C: "90.5%" },
     { A: "", B: 0, C: "91.0%" },
-    { A: "", B: 0, C: "91.1%" },
-    { A: "", B: 0, C: "91.2%" },
-    { A: "", B: 0, C: "91.3%" },
-    { A: "", B: 0, C: "91.4%" },
     { A: "", B: 0, C: "91.5%" },
-    { A: "", B: 0, C: "91.6%" },
-    { A: "", B: 0, C: "91.7%" },
-    { A: "", B: 0, C: "91.8%" },
-    { A: "", B: 0, C: "91.9%" },
     { A: "", B: 0, C: "92.0%" },
-    { A: "", B: 0, C: "92.1%" },
-    { A: "", B: 0, C: "92.2%" },
-    { A: "", B: 0, C: "92.3%" },
-    { A: "", B: 0, C: "92.4%" },
     { A: "", B: 0, C: "92.5%" },
     { A: "", B: 0, C: "93.0%" },
     { A: "", B: 0, C: "93.5%" },
@@ -95,6 +83,7 @@ export default function Formulario() {
     const [data, setData] = useState<DataType>(DataDefault);
     const [dataForm, setDataForm] = useState<FormType[]>(defaultForm);
     const [isError, setIsError] = useState(false);
+    const [maintenance, setMaintenance] = useState(false);
     const [image, setImage] = useState<string | null>(null);
     const [isMobile, setIsMobile] = useState(defaultwindow);
     const [isTV, setIsTV] = useState(defaultTV);
@@ -152,6 +141,25 @@ export default function Formulario() {
             lastSaveRef.current = now;
         }
     };
+
+    // Carga las puridades desde el backend al montar (evita redeploy al cambiarlas)
+    useEffect(() => {
+        let stopped = false;
+        api.config('goldsilver').then((cfg) => {
+            if (stopped) return;
+            setMaintenance(cfg?.enabled === false);
+            if (!cfg?.purities?.length) return;
+            const purityRows = cfg.purities!.map((c: string) => ({ A: "", B: 0, C: c }));
+            const editableRow = { A: "", B: 0, C: "", factorEditable: true };
+            setDataForm([...purityRows, editableRow]);
+        });
+        const id = setInterval(async () => {
+            const cfg = await api.config('goldsilver');
+            if (!stopped && cfg) setMaintenance(cfg.enabled === false);
+        }, 60000);
+        return () => { stopped = true; clearInterval(id); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const calculos = useCallback((nowData: DataType) => {
         setData({ ...nowData });
@@ -460,6 +468,16 @@ export default function Formulario() {
             </tr>
         </thead>
     );
+
+    if (maintenance) {
+        return (
+            <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '14px', background: '#131313', color: '#e6e6e6', textAlign: 'center', padding: '24px' }}>
+                <div style={{ fontSize: '40px' }}>🛠️</div>
+                <h1 style={{ fontSize: '22px', margin: 0, color: '#d4af37' }}>En mantenimiento</h1>
+                <p style={{ color: '#9aa0a6', maxWidth: '360px', margin: 0 }}>Estamos haciendo ajustes. Vuelve a intentarlo en unos minutos.</p>
+            </div>
+        );
+    }
 
     return (
         <>

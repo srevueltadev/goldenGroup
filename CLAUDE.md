@@ -1,3 +1,7 @@
+> [!note] Cerebro (Obsidian)
+> Antes de trabajar, lee la nota viva de este proyecto: `/Users/santirev/Proyect/obsidian/Proyectos/Golds.md`
+> (stack, arquitectura, comandos, endpoints, deploy). Índice del workspace: `/Users/santirev/Proyect/obsidian/🧠 Cerebro.md`.
+
 # CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
@@ -53,7 +57,7 @@ npm run lint     # ESLint check
 ### Deployment
 
 - Docker multi-stage build (Node 20 slim); Playwright deps installed inside image
-- Deployed to Fly.io (`fly.toml`): app `info-gold`, region `iad`, 3 GB RAM, 2 CPUs, autoscale from 0
+- Deployed to VPS `31.97.146.100` via `registry.revpos.app/goldsilver`; run `../deploy-goldsilver.sh` from workspace root
 
 ### Environment Variables
 

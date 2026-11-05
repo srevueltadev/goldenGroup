@@ -1,7 +1,7 @@
 # Gold Data API — Referencia de endpoints
 
 **Base URL local:** `http://localhost:4000`  
-**Base URL producción:** `https://gold-data-api.fly.dev` *(ajustar cuando se despliegue)*
+**Base URL producción:** `https://gold-api.santirev.com` *(ajustar cuando se despliegue)*
 
 **Autenticación:** todos los endpoints protegidos requieren el header `x-api-key` o el query param `?apiKey=`.  
 Si `API_KEY` no está definida en el entorno, la autenticación está desactivada.

@@ -1,6 +1,6 @@
 // Consulta directa al backend central desde el navegador (sin pasar por
 // pages/api): menos saltos y la app sigue viva aunque el server Next esté frío.
-const GOLD_API = process.env.NEXT_PUBLIC_GOLD_API_URL ?? 'https://gold-data-api.fly.dev';
+const GOLD_API = process.env.NEXT_PUBLIC_GOLD_API_URL ?? 'https://gold-api.santirev.com';
 const GOLD_API_KEY = process.env.NEXT_PUBLIC_GOLD_API_KEY ?? 'santi.dev';
 
 const apiHeaders = { 'x-api-key': GOLD_API_KEY };
@@ -73,6 +73,15 @@ const api = {
             return result;
         } catch {
             return result;
+        }
+    },
+    config: async (app: string): Promise<{ purities?: string[]; enabled?: boolean } | null> => {
+        try {
+            const response = await fetch(`${GOLD_API}/api/config/${app}`);
+            if (!response.ok) return null;
+            return await response.json();
+        } catch {
+            return null;
         }
     },
 };
